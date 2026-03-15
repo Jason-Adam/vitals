@@ -24,11 +24,8 @@ func main() {
 	// 3. Build a minimal RenderContext from stdin data.
 	// No gather coordinator yet — that comes in Phase 4.
 	ctx := &model.RenderContext{
-		ModelID:           "",
-		ModelDisplayName:  "",
-		ContextWindowSize: 0,
-		ContextPercent:    input.ContextPercent,
-		Cwd:               input.Cwd,
+		ContextPercent: input.ContextPercent,
+		Cwd:           input.Cwd,
 	}
 	if input.Model != nil {
 		ctx.ModelID = input.Model.ID
