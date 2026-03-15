@@ -11,6 +11,14 @@ type RenderContext struct {
 	SessionDuration string
 	ExtraLabel      string
 
+	// Top-level fields populated from StdinData during the gather stage.
+	// Widgets read these directly rather than dereferencing pointer fields.
+	ModelID           string
+	ModelDisplayName  string
+	ContextWindowSize int
+	ContextPercent    int
+	Cwd               string
+
 	// Pointer fields — all may be nil when the corresponding data is unavailable.
 	Transcript *TranscriptData
 	EnvCounts  *EnvCounts
