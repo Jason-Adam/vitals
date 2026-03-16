@@ -325,29 +325,23 @@ func TestToolsWidget_RunningToolShowsCategoryIconAndName(t *testing.T) {
 	}
 }
 
-func TestToolsWidget_RunningToolShowsElapsedIndicator(t *testing.T) {
-	// No DurationMs — should show "..." as the elapsed placeholder.
+func TestToolsWidget_RunningToolShowsBrailleSpinner(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: &model.TranscriptData{
-		Tools: []model.ToolEntry{{Name: "Bash", Count: 0, Category: "shell", DurationMs: 0}},
+		Tools: []model.ToolEntry{{Name: "Bash", Count: 0, Category: "shell"}},
 	}}
 	cfg := defaultCfg()
 
 	got := Tools(ctx, cfg)
-	if !strings.Contains(got, "...") {
-		t.Errorf("Tools running without DurationMs: expected '...' indicator, got %q", got)
+	// Should contain one of the braille spinner frames.
+	hasBraille := false
+	for _, frame := range brailleFrames {
+		if strings.Contains(got, frame) {
+			hasBraille = true
+			break
+		}
 	}
-}
-
-func TestToolsWidget_RunningToolWithDurationShowsElapsed(t *testing.T) {
-	// DurationMs set while still running (partial elapsed).
-	ctx := &model.RenderContext{Transcript: &model.TranscriptData{
-		Tools: []model.ToolEntry{{Name: "Bash", Count: 0, Category: "shell", DurationMs: 1500}},
-	}}
-	cfg := defaultCfg()
-
-	got := Tools(ctx, cfg)
-	if !strings.Contains(got, "1.5s") {
-		t.Errorf("Tools running with DurationMs=1500: expected '1.5s', got %q", got)
+	if !hasBraille {
+		t.Errorf("Running tool should show braille spinner, got %q", got)
 	}
 }
 
