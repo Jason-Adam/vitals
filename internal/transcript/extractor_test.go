@@ -1825,3 +1825,113 @@ func TestSnapshotSpec6_StartTimePreservedWithNanosecondPrecision(t *testing.T) {
 			t0, restored.startTime, delta)
 	}
 }
+
+// ---- Spinner frame counter specs --------------------------------------------
+
+// Spec: IncrementSpinnerFrame advances the counter by 1 each call.
+func TestIncrementSpinnerFrame_AdvancesCounter(t *testing.T) {
+	es := NewExtractionState()
+
+	if es.spinnerFrame != 0 {
+		t.Fatalf("expected initial spinnerFrame=0, got %d", es.spinnerFrame)
+	}
+
+	es.IncrementSpinnerFrame()
+	if es.spinnerFrame != 1 {
+		t.Errorf("after 1 increment: expected spinnerFrame=1, got %d", es.spinnerFrame)
+	}
+
+	es.IncrementSpinnerFrame()
+	if es.spinnerFrame != 2 {
+		t.Errorf("after 2 increments: expected spinnerFrame=2, got %d", es.spinnerFrame)
+	}
+}
+
+// Spec: ToTranscriptData includes SpinnerFrame so widgets can read it.
+func TestToTranscriptData_IncludesSpinnerFrame(t *testing.T) {
+	es := NewExtractionState()
+	es.IncrementSpinnerFrame()
+	es.IncrementSpinnerFrame()
+	es.IncrementSpinnerFrame()
+
+	td := es.ToTranscriptData()
+	if td.SpinnerFrame != 3 {
+		t.Errorf("expected SpinnerFrame=3 in TranscriptData, got %d", td.SpinnerFrame)
+	}
+}
+
+// Spec: SpinnerFrame is persisted in and restored from the snapshot so the
+// counter advances on every successive invocation, not just within one process.
+func TestSpinnerFrame_PersistedInSnapshot(t *testing.T) {
+	es := NewExtractionState()
+	es.IncrementSpinnerFrame()
+	es.IncrementSpinnerFrame()
+	es.IncrementSpinnerFrame() // spinnerFrame == 3
+
+	snap, err := es.MarshalSnapshot()
+	if err != nil {
+		t.Fatalf("MarshalSnapshot: %v", err)
+	}
+
+	// Simulate next invocation: fresh state, restore snapshot.
+	es2 := NewExtractionState()
+	if err := es2.UnmarshalSnapshot(snap); err != nil {
+		t.Fatalf("UnmarshalSnapshot: %v", err)
+	}
+
+	// Frame must be restored to 3 before the next increment.
+	if es2.spinnerFrame != 3 {
+		t.Errorf("expected spinnerFrame=3 after restore, got %d", es2.spinnerFrame)
+	}
+
+	// Simulating the gather-stage increment: must advance to 4.
+	es2.IncrementSpinnerFrame()
+	if es2.spinnerFrame != 4 {
+		t.Errorf("expected spinnerFrame=4 after post-restore increment, got %d", es2.spinnerFrame)
+	}
+}
+
+// Spec: Successive simulated invocations always produce different spinner frames
+// independent of wall-clock time.
+func TestSpinnerFrame_SuccessiveInvocationsProduceDifferentFrames(t *testing.T) {
+	// Simulate 12 successive invocations and collect their spinner frames.
+	var frames []int
+	currentFrame := 0
+
+	for i := 0; i < 12; i++ {
+		// Simulate: restore snapshot (currentFrame), increment, record.
+		es := NewExtractionState()
+		es.spinnerFrame = currentFrame
+		es.IncrementSpinnerFrame()
+		currentFrame = es.spinnerFrame
+		frames = append(frames, es.ToTranscriptData().SpinnerFrame)
+	}
+
+	// Every consecutive pair must differ.
+	for i := 1; i < len(frames); i++ {
+		if frames[i] == frames[i-1] {
+			t.Errorf("invocation %d and %d produced the same frame %d — spinner did not advance",
+				i-1, i, frames[i])
+		}
+	}
+}
+
+// Spec: SpinnerFrame does not depend on wall-clock time — two invocations at the
+// same millisecond still produce different frames.
+func TestSpinnerFrame_NoWallClockDependency(t *testing.T) {
+	// Freeze the concept of "same millisecond" by calling the counter twice
+	// back-to-back with no sleep. If the counter were time-based, they might
+	// produce the same frame; with a counter they must differ.
+	es1 := NewExtractionState()
+	es1.IncrementSpinnerFrame()
+	frame1 := es1.spinnerFrame
+
+	es2 := NewExtractionState()
+	es2.spinnerFrame = frame1
+	es2.IncrementSpinnerFrame()
+	frame2 := es2.spinnerFrame
+
+	if frame1 == frame2 {
+		t.Errorf("back-to-back counter increments produced same frame %d — counter not advancing", frame1)
+	}
+}

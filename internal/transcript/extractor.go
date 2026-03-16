@@ -87,6 +87,10 @@ type ExtractionState struct {
 	// thinkingCount is the total number of thinking blocks observed across all
 	// assistant messages in the session.
 	thinkingCount int
+
+	// spinnerFrame is a monotonic counter incremented on each statusline invocation.
+	// It is persisted in the snapshot so successive invocations always advance the frame.
+	spinnerFrame int
 }
 
 // NewExtractionState returns an initialised, empty ExtractionState.
@@ -96,6 +100,13 @@ func NewExtractionState() *ExtractionState {
 		agentMap:    make(map[string]*internalAgent),
 		taskIDIndex: make(map[string]int),
 	}
+}
+
+// IncrementSpinnerFrame advances the monotonic spinner counter by one.
+// Call this once per statusline invocation, after restoring the snapshot and
+// processing new transcript entries, so the frame always advances between renders.
+func (es *ExtractionState) IncrementSpinnerFrame() {
+	es.spinnerFrame++
 }
 
 // ProcessEntry classifies the content blocks in e and updates the extraction
@@ -373,6 +384,7 @@ func (es *ExtractionState) ToTranscriptData() *model.TranscriptData {
 		Todos:          todos,
 		ThinkingActive: es.thinkingActive,
 		ThinkingCount:  es.thinkingCount,
+		SpinnerFrame:   es.spinnerFrame,
 	}
 }
 
@@ -483,6 +495,7 @@ type extractionSnapshot struct {
 	SessionName    string           `json:"session_name"`
 	ThinkingActive bool             `json:"thinking_active"`
 	ThinkingCount  int              `json:"thinking_count"`
+	SpinnerFrame   int              `json:"spinner_frame"`
 }
 
 type snapshotTool struct {
@@ -553,6 +566,7 @@ func (es *ExtractionState) MarshalSnapshot() (json.RawMessage, error) {
 		SessionName:    es.sessionName,
 		ThinkingActive: es.thinkingActive,
 		ThinkingCount:  es.thinkingCount,
+		SpinnerFrame:   es.spinnerFrame,
 	}
 	return json.Marshal(snap)
 }
@@ -629,6 +643,7 @@ func (es *ExtractionState) UnmarshalSnapshot(data json.RawMessage) error {
 	es.sessionName = snap.SessionName
 	es.thinkingActive = snap.ThinkingActive
 	es.thinkingCount = snap.ThinkingCount
+	es.spinnerFrame = snap.SpinnerFrame
 	return nil
 }
 

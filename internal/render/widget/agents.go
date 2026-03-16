@@ -12,8 +12,16 @@ import (
 // brailleFrames is the spinner sequence used by tools and agents widgets.
 var brailleFrames = [10]string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
-// spinnerFrame returns the current braille spinner frame. Advances every 200ms
-// (~5 ticks/second) for a responsive feel without being distracting.
+// spinnerFrameFromCounter returns the braille frame for a given monotonic counter.
+// Using an invocation counter instead of wall-clock time guarantees the frame
+// advances on every render, regardless of when within a tick the binary runs.
+func spinnerFrameFromCounter(n int) string {
+	return brailleFrames[n%10]
+}
+
+// spinnerFrame returns the current braille spinner frame using wall-clock time.
+// Kept for any caller that doesn't have access to an invocation counter.
+// Advances every 200ms (~5 ticks/second).
 func spinnerFrame() string {
 	return brailleFrames[time.Now().UnixMilli()/200%10]
 }
@@ -57,7 +65,7 @@ func Agents(ctx *model.RenderContext, cfg *config.Config) string {
 		return ""
 	}
 
-	spinner := spinnerFrame()
+	spinner := spinnerFrameFromCounter(ctx.Transcript.SpinnerFrame)
 
 	var parts []string
 	for _, a := range toShow {

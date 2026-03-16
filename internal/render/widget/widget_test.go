@@ -1322,3 +1322,59 @@ func TestCategoryIcon_AllModesReturnNonEmpty(t *testing.T) {
 		}
 	}
 }
+
+// -- Spinner widget -----------------------------------------------------------
+
+// Spec: successive invocations with a transcript produce different frames
+// because SpinnerFrame is a monotonic counter, not wall-clock time.
+func TestSpinnerWidget_DifferentFramePerInvocation(t *testing.T) {
+	cfg := defaultCfg()
+
+	ctx1 := &model.RenderContext{Transcript: &model.TranscriptData{SpinnerFrame: 1}}
+	ctx2 := &model.RenderContext{Transcript: &model.TranscriptData{SpinnerFrame: 2}}
+
+	got1 := Spinner(ctx1, cfg)
+	got2 := Spinner(ctx2, cfg)
+
+	if got1 == got2 {
+		t.Errorf("Spinner: consecutive frames (1 and 2) produced identical output %q — frame not advancing", got1)
+	}
+}
+
+// Spec: with no transcript, the Spinner falls back to time-based rendering
+// and still returns a non-empty string.
+func TestSpinnerWidget_FallsBackWithoutTranscript(t *testing.T) {
+	cfg := defaultCfg()
+	ctx := &model.RenderContext{Transcript: nil}
+
+	got := Spinner(ctx, cfg)
+	if got == "" {
+		t.Error("Spinner with nil transcript: expected non-empty fallback, got empty string")
+	}
+}
+
+// Spec: spinnerFrameFromCounter wraps at 10 (matching brailleFrames length).
+func TestSpinnerFrameFromCounter_WrapsAt10(t *testing.T) {
+	frame0 := spinnerFrameFromCounter(0)
+	frame10 := spinnerFrameFromCounter(10)
+	if frame0 != frame10 {
+		t.Errorf("spinnerFrameFromCounter(0)=%q and spinnerFrameFromCounter(10)=%q should be equal (modulo 10)", frame0, frame10)
+	}
+
+	frame1 := spinnerFrameFromCounter(1)
+	frame11 := spinnerFrameFromCounter(11)
+	if frame1 != frame11 {
+		t.Errorf("spinnerFrameFromCounter(1)=%q and spinnerFrameFromCounter(11)=%q should be equal (modulo 10)", frame1, frame11)
+	}
+}
+
+// Spec: each of the 10 braille frames is reachable via spinnerFrameFromCounter.
+func TestSpinnerFrameFromCounter_AllFramesReachable(t *testing.T) {
+	seen := make(map[string]bool)
+	for i := 0; i < 10; i++ {
+		seen[spinnerFrameFromCounter(i)] = true
+	}
+	if len(seen) != 10 {
+		t.Errorf("expected 10 distinct frames, got %d: %v", len(seen), seen)
+	}
+}

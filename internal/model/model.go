@@ -48,6 +48,11 @@ type TranscriptData struct {
 	// ThinkingCount is the total number of thinking blocks observed across all
 	// assistant messages in the session.
 	ThinkingCount int
+
+	// SpinnerFrame is a monotonic counter incremented on each statusline invocation.
+	// Widgets use it instead of wall-clock time to guarantee spinner advancement
+	// on every render regardless of when within a tick the binary runs.
+	SpinnerFrame int
 }
 
 // ToolEntry records a single tool invocation observed in the transcript.

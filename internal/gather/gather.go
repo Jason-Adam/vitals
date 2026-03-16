@@ -137,6 +137,10 @@ func gatherTranscript(path string) *model.TranscriptData {
 		es.ProcessEntry(e)
 	}
 
+	// Advance the spinner frame once per invocation so successive renders always
+	// show a different frame, independent of wall-clock time granularity.
+	es.IncrementSpinnerFrame()
+
 	td := es.ToTranscriptData()
 	td.Path = path
 
