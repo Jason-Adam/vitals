@@ -18,7 +18,7 @@ var dimSep = dimStyle.Render(" | ")
 const maxVisibleTools = 5
 
 // Tools renders running and recently-completed tool invocations as a HUD activity feed.
-// Running tools show a category icon + name + elapsed indicator in yellow.
+// Running tools show a yellow category icon + name (default color) + elapsed indicator.
 // Completed tools show a dim category icon + name + duration.
 // Error tools show the error icon + name + duration + "err" in red.
 // Returns "" when ctx.Transcript is nil or there are no tools to show.
@@ -91,10 +91,10 @@ func renderToolEntry(icons Icons, t model.ToolEntry) string {
 	catIcon := CategoryIcon(icons, t.Category)
 
 	if t.Count == 0 {
-		// Running: yellow category icon + name.
+		// Running: yellow category icon only; name uses default foreground to match
+		// the completed-tool pattern where only the icon carries color.
 		icon := yellowStyle.Render(catIcon)
-		name := yellowStyle.Render(t.Name)
-		return fmt.Sprintf("%s %s", icon, name)
+		return fmt.Sprintf("%s %s", icon, t.Name)
 	}
 
 	if t.HasError {
