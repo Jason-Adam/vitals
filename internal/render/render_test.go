@@ -467,3 +467,160 @@ func TestRender_PerLinePowerlineMode(t *testing.T) {
 		t.Errorf("line 1 (plain): unexpected start cap char, got %q", lines[1])
 	}
 }
+
+func TestRender_CapsuleMode(t *testing.T) {
+	ctx := &model.RenderContext{
+		ModelDisplayName:  "Opus",
+		ContextWindowSize: 200000,
+		ContextPercent:    42,
+	}
+	cfg := config.LoadHud()
+	cfg.Style.Mode = "capsule"
+	cfg.Lines = []config.Line{
+		{Widgets: []string{"model", "context"}},
+	}
+
+	var buf bytes.Buffer
+	Render(&buf, ctx, cfg)
+
+	out := buf.String()
+	// Capsule mode wraps each segment with rounded caps.
+	if !strings.Contains(out, capsuleLeft) {
+		t.Errorf("expected capsule left cap %q in output, got %q", capsuleLeft, out)
+	}
+	if !strings.Contains(out, capsuleRight) {
+		t.Errorf("expected capsule right cap %q in output, got %q", capsuleRight, out)
+	}
+	// Both widgets must appear in the output.
+	if !strings.Contains(out, "Opus") {
+		t.Errorf("expected 'Opus' in capsule output, got %q", out)
+	}
+	if !strings.Contains(out, "42%") {
+		t.Errorf("expected '42%%' in capsule output, got %q", out)
+	}
+}
+
+func TestRender_CapsuleMode_NoSeparator(t *testing.T) {
+	// Capsule mode must NOT use the configured separator.
+	ctx := &model.RenderContext{
+		ModelDisplayName:  "Opus",
+		ContextWindowSize: 200000,
+		ContextPercent:    42,
+	}
+	cfg := config.LoadHud()
+	cfg.Style.Mode = "capsule"
+	cfg.Style.Separator = " || "
+	cfg.Lines = []config.Line{
+		{Widgets: []string{"model", "context"}},
+	}
+
+	var buf bytes.Buffer
+	Render(&buf, ctx, cfg)
+
+	out := buf.String()
+	if strings.Contains(out, " || ") {
+		t.Errorf("capsule mode must not use separator, got %q", out)
+	}
+}
+
+func TestRender_MinimalMode(t *testing.T) {
+	ctx := &model.RenderContext{
+		ModelDisplayName:  "Haiku",
+		ContextWindowSize: 200000,
+		ContextPercent:    10,
+	}
+	cfg := config.LoadHud()
+	cfg.Style.Mode = "minimal"
+	cfg.Lines = []config.Line{
+		{Widgets: []string{"model", "context"}},
+	}
+
+	var buf bytes.Buffer
+	Render(&buf, ctx, cfg)
+
+	out := buf.String()
+	// Minimal mode must produce output with both widgets.
+	if !strings.Contains(out, "Haiku") {
+		t.Errorf("expected 'Haiku' in minimal output, got %q", out)
+	}
+	if !strings.Contains(out, "10%") {
+		t.Errorf("expected '10%%' in minimal output, got %q", out)
+	}
+	// No capsule caps.
+	if strings.Contains(out, capsuleLeft) || strings.Contains(out, capsuleRight) {
+		t.Errorf("minimal mode must not contain capsule caps, got %q", out)
+	}
+}
+
+func TestRender_MinimalMode_NoSeparator(t *testing.T) {
+	// Minimal mode uses a single space, not the configured separator.
+	ctx := &model.RenderContext{
+		ModelDisplayName:  "Haiku",
+		ContextWindowSize: 200000,
+		ContextPercent:    10,
+	}
+	cfg := config.LoadHud()
+	cfg.Style.Mode = "minimal"
+	cfg.Style.Separator = " || "
+	cfg.Lines = []config.Line{
+		{Widgets: []string{"model", "context"}},
+	}
+
+	var buf bytes.Buffer
+	Render(&buf, ctx, cfg)
+
+	out := buf.String()
+	if strings.Contains(out, " || ") {
+		t.Errorf("minimal mode must not use separator, got %q", out)
+	}
+}
+
+func TestRender_PerLineMode(t *testing.T) {
+	// A per-line mode override takes precedence over the global style mode.
+	ctx := &model.RenderContext{
+		ModelDisplayName:  "Sonnet",
+		ContextWindowSize: 200000,
+		ContextPercent:    75,
+	}
+	cfg := config.LoadHud()
+	cfg.Style.Mode = "plain"
+	cfg.Style.Separator = " || "
+	cfg.Lines = []config.Line{
+		{Widgets: []string{"model"}, Mode: "capsule"},
+		{Widgets: []string{"context"}, Mode: "minimal"},
+	}
+
+	var buf bytes.Buffer
+	Render(&buf, ctx, cfg)
+
+	out := buf.String()
+	// First line (capsule) must have rounded caps.
+	if !strings.Contains(out, capsuleLeft) {
+		t.Errorf("per-line capsule override: expected left cap in output, got %q", out)
+	}
+	// The separator is from plain mode and must not appear since both lines use overrides.
+	if strings.Contains(out, " || ") {
+		t.Errorf("per-line overrides must not use plain separator, got %q", out)
+	}
+}
+
+func TestLineMode_Defaults(t *testing.T) {
+	line := config.Line{Widgets: []string{"model"}}
+	if got := lineMode(line, "capsule"); got != "capsule" {
+		t.Errorf("expected global mode 'capsule', got %q", got)
+	}
+}
+
+func TestLineMode_PerLineOverride(t *testing.T) {
+	line := config.Line{Widgets: []string{"model"}, Mode: "minimal"}
+	if got := lineMode(line, "capsule"); got != "minimal" {
+		t.Errorf("expected per-line override 'minimal', got %q", got)
+	}
+}
+
+func TestLineMode_FallbackToPlain(t *testing.T) {
+	line := config.Line{Widgets: []string{"model"}}
+	if got := lineMode(line, ""); got != "plain" {
+		t.Errorf("expected fallback to 'plain', got %q", got)
+	}
+}

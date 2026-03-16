@@ -14,7 +14,7 @@ import (
 // Line represents a single rendered row in the statusline.
 // Each widget name maps to a render function in the widget registry.
 // Mode overrides the global style.mode for this specific line.
-// Valid values: "" (inherit global), "plain", "powerline".
+// Valid values: "" (inherit global), "plain", "powerline", "capsule", "minimal".
 type Line struct {
 	Widgets []string `toml:"widgets"`
 	Mode    string   `toml:"mode"`
@@ -50,8 +50,8 @@ type Config struct {
 		Icons      string `toml:"icons"`
 		ColorLevel string `toml:"color_level"`
 		Theme      string `toml:"theme"`
-		// Mode controls the rendering style for all lines unless overridden per-line.
-		// Valid values: "plain" (default), "powerline".
+		// Mode controls the segment decoration style for all lines unless overridden per-line.
+		// Accepted values: "plain" (default), "powerline", "capsule", "minimal".
 		Mode   string `toml:"mode"`
 		Colors struct {
 			Context  string `toml:"context"`
