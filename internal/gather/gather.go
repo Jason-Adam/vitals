@@ -88,7 +88,7 @@ func Gather(input *model.StdinData, cfg *config.Config) *model.RenderContext {
 	wg.Wait()
 
 	// Post-gather: compute derived fields that depend on gathered data.
-	ctx.SessionDuration = sessionStart(ctx.Transcript, input.TranscriptPath)
+	ctx.SessionStart = sessionStart(ctx.Transcript, input.TranscriptPath)
 	ctx.TerminalWidth = terminalWidth()
 
 	return ctx
