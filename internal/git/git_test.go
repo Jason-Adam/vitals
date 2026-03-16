@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/git"
 )
@@ -183,7 +184,6 @@ func TestGetStatus_ModifiedFile(t *testing.T) {
 }
 
 // TestGetStatus_NoUpstream verifies ahead/behind are zero when no remote is configured.
-// This exercises the non-fatal code path in applyAheadBehind.
 func TestGetStatus_NoUpstream(t *testing.T) {
 	dir := t.TempDir()
 	initRepo(t, dir)
@@ -198,5 +198,77 @@ func TestGetStatus_NoUpstream(t *testing.T) {
 	}
 	if status.BehindBy != 0 {
 		t.Errorf("expected BehindBy=0 with no upstream, got %d", status.BehindBy)
+	}
+}
+
+// TestGetStatus_Cache verifies that a second call within 1 second returns the
+// cached result without spawning a subprocess (cache hit is observable via timing).
+func TestGetStatus_Cache(t *testing.T) {
+	dir := t.TempDir()
+	initRepo(t, dir)
+	commitFile(t, dir, "README.md", "hello")
+
+	// First call — populates the cache.
+	first := git.GetStatus(dir)
+	if first == nil {
+		t.Fatal("expected non-nil status on first call")
+	}
+
+	// Add an untracked file after the first call. A cache hit must return the
+	// pre-change snapshot, proving no subprocess was spawned.
+	if err := os.WriteFile(filepath.Join(dir, "new.txt"), []byte("new"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	// Second call within the TTL window — must hit the cache.
+	second := git.GetStatus(dir)
+	if second == nil {
+		t.Fatal("expected non-nil status on second call")
+	}
+
+	// Cache hit: the new untracked file must not be visible yet.
+	if second.Untracked != 0 {
+		t.Errorf("expected 0 untracked from cached result (cache miss?), got %d", second.Untracked)
+	}
+	if second.Dirty {
+		t.Errorf("expected Dirty=false from cached result, got true")
+	}
+
+	// The two calls should return the same pointer — confirming cache reuse.
+	if first != second {
+		t.Error("expected second call to return same pointer as first (cache hit)")
+	}
+}
+
+// TestGetStatus_CacheExpiry verifies that a call after the TTL window spawns a
+// fresh subprocess and returns updated results.
+func TestGetStatus_CacheExpiry(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping cache expiry test in short mode (requires >1s sleep)")
+	}
+
+	dir := t.TempDir()
+	initRepo(t, dir)
+	commitFile(t, dir, "README.md", "hello")
+
+	// Warm the cache.
+	first := git.GetStatus(dir)
+	if first == nil {
+		t.Fatal("expected non-nil status on first call")
+	}
+
+	// Add an untracked file and wait for TTL to expire.
+	if err := os.WriteFile(filepath.Join(dir, "new.txt"), []byte("new"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	time.Sleep(1100 * time.Millisecond)
+
+	// Call after TTL — must reflect the new file.
+	second := git.GetStatus(dir)
+	if second == nil {
+		t.Fatal("expected non-nil status after cache expiry")
+	}
+	if second.Untracked != 1 {
+		t.Errorf("expected 1 untracked after cache expiry, got %d", second.Untracked)
 	}
 }

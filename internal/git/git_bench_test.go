@@ -10,14 +10,10 @@ import (
 )
 
 // BenchmarkGetStatus_GitRepo measures the wall-clock cost of git.GetStatus
-// against a real (but minimal) git repository. This shells out to three git
-// subprocesses: rev-parse, status --porcelain, and rev-list --left-right.
+// against a real (but minimal) git repository. A single `git status --branch
+// --porcelain=v2` subprocess is spawned per call (cache miss path).
 //
-// OVER 10ms THRESHOLD: Measured ~55ms on Apple M3 Max (darwin/arm64). Each call
-// forks up to three child processes. This is the dominant bottleneck in the
-// Gather pipeline. Follow-up card needed to optimize: cache git status across
-// ticks or reduce subprocess count (e.g., single `git status --branch --porcelain=v2`
-// call instead of three separate invocations).
+// TARGET: under 10ms per operation on Apple M3 Max (darwin/arm64).
 func BenchmarkGetStatus_GitRepo(b *testing.B) {
 	b.ReportAllocs()
 
@@ -57,12 +53,8 @@ func BenchmarkGetStatus_GitRepo_WithChanges(b *testing.B) {
 }
 
 // BenchmarkGetStatus_NonGitDir measures the fast-fail path: GetStatus called
-// on a directory that is not a git repository. Only one subprocess is spawned
-// (rev-parse fails immediately).
-//
-// OVER 10ms THRESHOLD: Measured ~17ms on Apple M3 Max (darwin/arm64). Even a
-// single failing git subprocess costs ~17ms due to process spawn overhead.
-// The optimization card for BenchmarkGetStatus_GitRepo should also cover this path.
+// on a directory that is not a git repository. The single subprocess exits
+// non-zero immediately — no further work is done.
 func BenchmarkGetStatus_NonGitDir(b *testing.B) {
 	b.ReportAllocs()
 
@@ -82,7 +74,7 @@ func initGitRepo(b *testing.B, dir string) {
 	gitCmd(b, dir, "config", "user.email", "bench@example.com")
 	gitCmd(b, dir, "config", "user.name", "Benchmarker")
 
-	// Write a file and commit so HEAD is valid (rev-parse returns "main").
+	// Write a file and commit so HEAD is valid (branch.head returns "main").
 	writeFile(b, filepath.Join(dir, "hello.txt"), "hello\n")
 	gitCmd(b, dir, "add", "hello.txt")
 	gitCmd(b, dir, "commit", "-m", "init")

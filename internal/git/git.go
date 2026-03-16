@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/logging"
@@ -13,117 +14,127 @@ import (
 )
 
 const timeout = time.Second
+const cacheTTL = time.Second
+
+// cache holds the last result per working directory.
+type cacheEntry struct {
+	status    *model.GitStatus
+	timestamp time.Time
+}
+
+var (
+	cacheMu sync.Mutex
+	cache   = map[string]cacheEntry{}
+)
 
 // GetStatus returns the git status for the given directory, or nil if the
 // directory is not a git repo or any command fails. Callers must guard against
 // nil before dereferencing the result.
+//
+// Results are cached per directory for up to 1 second so rapid successive
+// calls (e.g. multiple render ticks) avoid redundant subprocess spawns.
 func GetStatus(cwd string) *model.GitStatus {
-	branch, ok := getBranch(cwd)
-	if !ok {
-		// Not a git repo or git unavailable — fail open.
-		return nil
+	cacheMu.Lock()
+	if entry, ok := cache[cwd]; ok && time.Since(entry.timestamp) < cacheTTL {
+		cacheMu.Unlock()
+		return entry.status
 	}
+	cacheMu.Unlock()
 
-	status := &model.GitStatus{Branch: branch}
+	status := fetchStatus(cwd)
 
-	if err := applyPorcelain(cwd, status); err != nil {
-		logging.Debug("git: porcelain failed in %s: %v", cwd, err)
-		return nil
-	}
-
-	// Ahead/behind: failure is non-fatal — default to 0/0 (no upstream).
-	applyAheadBehind(cwd, status)
+	cacheMu.Lock()
+	cache[cwd] = cacheEntry{status: status, timestamp: time.Now()}
+	cacheMu.Unlock()
 
 	return status
 }
 
-// getBranch runs `git rev-parse --abbrev-ref HEAD` and returns the branch name.
-// Returns ("", false) when the command fails, which signals we are not in a git repo.
-func getBranch(cwd string) (string, bool) {
+// fetchStatus runs a single `git status --branch --porcelain=v2` subprocess and
+// parses all fields needed by model.GitStatus. Returns nil when the directory is
+// not a git repo or the command fails.
+func fetchStatus(cwd string) *model.GitStatus {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd := exec.CommandContext(ctx, "git", "status", "--branch", "--porcelain=v2")
 	cmd.Dir = cwd
 	out, err := cmd.Output()
 	if err != nil {
-		logging.Debug("git: rev-parse failed in %s: %v", cwd, err)
-		return "", false
+		// Non-zero exit means we're outside a git repo or git is unavailable.
+		logging.Debug("git: porcelain=v2 failed in %s: %v", cwd, err)
+		return nil
 	}
-	return strings.TrimSpace(string(out)), true
+
+	return parsePorcelainV2(string(out))
 }
 
-// applyPorcelain runs `git status --porcelain` and populates staged, modified,
-// untracked, and dirty fields on the provided GitStatus.
-func applyPorcelain(cwd string, status *model.GitStatus) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+// parsePorcelainV2 parses the output of `git status --branch --porcelain=v2`
+// and returns a populated GitStatus. The format is documented in git-status(1).
+//
+// Header lines start with "# " and carry branch/upstream metadata:
+//
+//	# branch.head <name>
+//	# branch.ab +<ahead> -<behind>
+//
+// Entry lines describe file changes:
+//
+//	1 <XY> ... (ordinary changed entry)
+//	2 <XY> ... (renamed/copied entry)
+//	? <path>  (untracked file)
+//	u <XY> ... (unmerged entry)
+func parsePorcelainV2(output string) *model.GitStatus {
+	status := &model.GitStatus{}
 
-	cmd := exec.CommandContext(ctx, "git", "status", "--porcelain")
-	cmd.Dir = cwd
-	out, err := cmd.Output()
-	if err != nil {
-		return err
-	}
-
-	for _, line := range strings.Split(string(out), "\n") {
-		if len(line) < 2 {
+	for _, line := range strings.Split(output, "\n") {
+		if len(line) == 0 {
 			continue
 		}
-		status.Dirty = true
-		x := line[0] // index status
-		y := line[1] // worktree status
 
-		// Untracked: both columns are '?'
-		if x == '?' && y == '?' {
+		switch {
+		case strings.HasPrefix(line, "# branch.head "):
+			// Branch name; "(detached)" when HEAD is detached.
+			status.Branch = strings.TrimPrefix(line, "# branch.head ")
+
+		case strings.HasPrefix(line, "# branch.ab "):
+			// Ahead/behind counts relative to upstream: "+N -M"
+			parts := strings.Fields(strings.TrimPrefix(line, "# branch.ab "))
+			if len(parts) == 2 {
+				if n, err := strconv.Atoi(strings.TrimPrefix(parts[0], "+")); err == nil {
+					status.AheadBy = n
+				}
+				if n, err := strconv.Atoi(strings.TrimPrefix(parts[1], "-")); err == nil {
+					status.BehindBy = n
+				}
+			}
+
+		case line[0] == '?':
+			// Untracked file.
 			status.Untracked++
-			continue
+			status.Dirty = true
+
+		case line[0] == '1' || line[0] == '2' || line[0] == 'u':
+			// Ordinary change, rename/copy, or unmerged entry.
+			// Field layout: <type> <XY> ...
+			// XY is at position 2-3: X = index (staged) status, Y = worktree status.
+			if len(line) < 4 {
+				continue
+			}
+			status.Dirty = true
+			x := line[2] // index column
+			y := line[3] // worktree column
+
+			// Staged: index column is not '.' (unchanged) or '?'
+			if x != '.' && x != '?' {
+				status.Staged++
+			}
+
+			// Modified in worktree: 'M' (modified) or 'D' (deleted)
+			if y == 'M' || y == 'D' {
+				status.Modified++
+			}
 		}
-
-		// Staged: index column is not space or '?'
-		if x != ' ' && x != '?' {
-			status.Staged++
-		}
-
-		// Modified in worktree: 'M' (modified) or 'D' (deleted)
-		if y == 'M' || y == 'D' {
-			status.Modified++
-		}
 	}
 
-	return nil
-}
-
-// applyAheadBehind runs `git rev-list --left-right --count @{upstream}...HEAD`
-// and sets AheadBy / BehindBy on the status. Silently ignores errors so that
-// repos without an upstream configured still return a valid (zero) result.
-func applyAheadBehind(cwd string, status *model.GitStatus) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "git", "rev-list", "--left-right", "--count", "@{upstream}...HEAD")
-	cmd.Dir = cwd
-	out, err := cmd.Output()
-	if err != nil {
-		// No upstream or other failure — leave counts at zero.
-		logging.Debug("git: rev-list upstream failed in %s: %v", cwd, err)
-		return
-	}
-
-	parts := strings.Fields(strings.TrimSpace(string(out)))
-	if len(parts) != 2 {
-		return
-	}
-
-	behind, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return
-	}
-	ahead, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return
-	}
-
-	status.BehindBy = behind
-	status.AheadBy = ahead
+	return status
 }
