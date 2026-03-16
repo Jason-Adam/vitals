@@ -56,14 +56,22 @@ func TestRender_SkipsUnknownWidgets(t *testing.T) {
 }
 
 func TestRender_SkipsEmptyLines(t *testing.T) {
-	ctx := &model.RenderContext{} // no data -> all widgets return ""
+	ctx := &model.RenderContext{} // no data -> most widgets return ""
 	cfg := config.LoadHud()
 
 	var buf bytes.Buffer
 	Render(&buf, ctx, cfg)
 
-	if buf.String() != "" {
-		t.Errorf("expected no output for empty context, got %q", buf.String())
+	// The spinner widget is unconditional — it always renders a braille character
+	// on line 1. Lines 2 and 3 (agents, tools) remain empty and are skipped.
+	// So we expect exactly one line of output (no trailing newline from skipped lines).
+	out := buf.String()
+	lines := strings.Split(strings.TrimRight(out, "\n"), "\n")
+	if len(lines) != 1 {
+		t.Errorf("expected 1 rendered line (spinner only), got %d lines: %q", len(lines), out)
+	}
+	if out == "" {
+		t.Error("expected spinner output, got empty string")
 	}
 }
 
