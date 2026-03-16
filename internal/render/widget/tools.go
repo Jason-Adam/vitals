@@ -3,7 +3,6 @@ package widget
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
@@ -68,7 +67,7 @@ func renderToolEntry(icons Icons, t model.ToolEntry) string {
 		// Running: yellow category icon + name + braille spinner.
 		icon := yellowStyle.Render(catIcon)
 		name := yellowStyle.Render(t.Name)
-		spinner := brailleFrames[time.Now().Unix()%10]
+		spinner := spinnerFrame()
 		return fmt.Sprintf("%s %s %s", icon, name, yellowStyle.Render(spinner))
 	}
 

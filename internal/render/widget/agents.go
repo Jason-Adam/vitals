@@ -9,9 +9,14 @@ import (
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
 )
 
-// brailleFrames is the spinner sequence; frame selection via time.Now().Unix() % 10
-// gives a new frame each second without per-render state.
+// brailleFrames is the spinner sequence used by tools and agents widgets.
 var brailleFrames = [10]string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
+// spinnerFrame returns the current braille spinner frame. Advances every 200ms
+// (~5 ticks/second) for a responsive feel without being distracting.
+func spinnerFrame() string {
+	return brailleFrames[time.Now().UnixMilli()/200%10]
+}
 
 // Agents renders running and recently-completed sub-agent entries.
 // Running agents show a colored robot icon, braille spinner, and elapsed time.
@@ -49,7 +54,7 @@ func Agents(ctx *model.RenderContext, cfg *config.Config) string {
 		return ""
 	}
 
-	spinner := brailleFrames[time.Now().Unix()%10]
+	spinner := spinnerFrame()
 
 	var parts []string
 	for _, a := range toShow {
