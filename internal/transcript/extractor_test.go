@@ -999,6 +999,43 @@ func TestMarshalUnmarshalSnapshot_ToolsRoundTrip(t *testing.T) {
 	}
 }
 
+// TestMarshalUnmarshalSnapshot_DurationMsPreserved verifies that a completed
+// tool's DurationMs value survives a full marshal/unmarshal snapshot cycle.
+// This is the core requirement for spec 2: after snapshot restore, the display
+// layer must see the original elapsed duration, not a misleading 0.
+func TestMarshalUnmarshalSnapshot_DurationMsPreserved(t *testing.T) {
+	t0 := time.Date(2024, 11, 1, 10, 0, 0, 0, time.UTC)
+	t1 := t0.Add(2500 * time.Millisecond) // 2.5 seconds
+
+	es1 := NewExtractionState()
+	es1.ProcessEntry(makeToolUseEntryAt("dur-1", "Read",
+		map[string]interface{}{"file_path": "foo.go"}, t0))
+	es1.ProcessEntry(makeToolResultEntryAt("dur-1", false, t1))
+
+	data1 := es1.ToTranscriptData()
+	if data1.Tools[0].DurationMs != 2500 {
+		t.Fatalf("pre-snapshot DurationMs=%d, want 2500", data1.Tools[0].DurationMs)
+	}
+
+	snap, err := es1.MarshalSnapshot()
+	if err != nil {
+		t.Fatalf("MarshalSnapshot: %v", err)
+	}
+
+	es2 := NewExtractionState()
+	if err := es2.UnmarshalSnapshot(snap); err != nil {
+		t.Fatalf("UnmarshalSnapshot: %v", err)
+	}
+
+	data2 := es2.ToTranscriptData()
+	if len(data2.Tools) != 1 {
+		t.Fatalf("expected 1 tool after restore, got %d", len(data2.Tools))
+	}
+	if data2.Tools[0].DurationMs != 2500 {
+		t.Errorf("DurationMs not preserved across snapshot: got %d, want 2500", data2.Tools[0].DurationMs)
+	}
+}
+
 func TestMarshalUnmarshalSnapshot_AgentsRoundTrip(t *testing.T) {
 	es1 := NewExtractionState()
 	es1.ProcessEntry(makeToolUseEntry("agent-1", "Task", map[string]interface{}{
