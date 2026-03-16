@@ -196,7 +196,7 @@ func TestTools_OutOfOrderCompletion_DisplayOrderCorrect(t *testing.T) {
 	// B was started second (index 1) and has already completed.
 	// C was started third (index 2) and has already completed.
 	tools := []model.ToolEntry{
-		{Name: "ToolA", Category: "shell"},                                        // still running
+		{Name: "ToolA", Category: "shell"},                                     // still running
 		{Name: "ToolB", Completed: true, DurationMs: 500, Category: "file"},    // completed first
 		{Name: "ToolC", Completed: true, DurationMs: 1000, Category: "search"}, // completed second
 	}
