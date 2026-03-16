@@ -424,6 +424,110 @@ func TestToTranscriptData_TodosCopied(t *testing.T) {
 	}
 }
 
+// ---- New ToolEntry fields: Category, Target, HasError, DurationMs ---------
+
+func TestToTranscriptData_Category_FileTools(t *testing.T) {
+	for _, name := range []string{"Read", "Write", "Edit"} {
+		es := NewExtractionState()
+		es.ProcessEntry(makeToolUseEntry("id-1", name, map[string]interface{}{"file_path": "x.go"}))
+		data := es.ToTranscriptData()
+		if data.Tools[0].Category != "file" {
+			t.Errorf("%s: expected category=file, got %q", name, data.Tools[0].Category)
+		}
+	}
+}
+
+func TestToTranscriptData_Category_ShellTool(t *testing.T) {
+	es := NewExtractionState()
+	es.ProcessEntry(makeToolUseEntry("id-1", "Bash", map[string]interface{}{"command": "ls"}))
+	data := es.ToTranscriptData()
+	if data.Tools[0].Category != "shell" {
+		t.Errorf("expected category=shell, got %q", data.Tools[0].Category)
+	}
+}
+
+func TestToTranscriptData_Category_SearchTools(t *testing.T) {
+	for _, name := range []string{"Grep", "Glob"} {
+		es := NewExtractionState()
+		es.ProcessEntry(makeToolUseEntry("id-1", name, map[string]interface{}{"pattern": "*.go"}))
+		data := es.ToTranscriptData()
+		if data.Tools[0].Category != "search" {
+			t.Errorf("%s: expected category=search, got %q", name, data.Tools[0].Category)
+		}
+	}
+}
+
+func TestToTranscriptData_Category_WebTools(t *testing.T) {
+	for _, name := range []string{"WebFetch", "WebSearch"} {
+		es := NewExtractionState()
+		es.ProcessEntry(makeToolUseEntry("id-1", name, map[string]interface{}{}))
+		data := es.ToTranscriptData()
+		if data.Tools[0].Category != "web" {
+			t.Errorf("%s: expected category=web, got %q", name, data.Tools[0].Category)
+		}
+	}
+}
+
+func TestToTranscriptData_Category_InternalTool(t *testing.T) {
+	// Tools not in any known category fall back to "internal".
+	es := NewExtractionState()
+	es.ProcessEntry(makeToolUseEntry("id-1", "SomeFutureTool", map[string]interface{}{}))
+	data := es.ToTranscriptData()
+	if data.Tools[0].Category != "internal" {
+		t.Errorf("expected category=internal for unknown tool, got %q", data.Tools[0].Category)
+	}
+}
+
+func TestToTranscriptData_Target_PassedThrough(t *testing.T) {
+	es := NewExtractionState()
+	es.ProcessEntry(makeToolUseEntry("id-1", "Read", map[string]interface{}{"file_path": "/src/main.go"}))
+	data := es.ToTranscriptData()
+	if data.Tools[0].Target != "/src/main.go" {
+		t.Errorf("expected Target=/src/main.go, got %q", data.Tools[0].Target)
+	}
+}
+
+func TestToTranscriptData_HasError_FalseWhenNoError(t *testing.T) {
+	es := NewExtractionState()
+	es.ProcessEntry(makeToolUseEntry("id-1", "Bash", map[string]interface{}{"command": "true"}))
+	es.ProcessEntry(makeToolResultEntry("id-1", false))
+	data := es.ToTranscriptData()
+	if data.Tools[0].HasError {
+		t.Error("expected HasError=false for successful tool result")
+	}
+}
+
+func TestToTranscriptData_HasError_TrueWhenIsError(t *testing.T) {
+	es := NewExtractionState()
+	es.ProcessEntry(makeToolUseEntry("id-1", "Bash", map[string]interface{}{"command": "exit 1"}))
+	es.ProcessEntry(makeToolResultEntry("id-1", true))
+	data := es.ToTranscriptData()
+	if !data.Tools[0].HasError {
+		t.Error("expected HasError=true when tool_result.is_error is true")
+	}
+}
+
+func TestToTranscriptData_HasError_FalseWhenStillRunning(t *testing.T) {
+	// A running tool (no result yet) must have HasError=false.
+	es := NewExtractionState()
+	es.ProcessEntry(makeToolUseEntry("id-1", "Bash", map[string]interface{}{"command": "sleep 10"}))
+	data := es.ToTranscriptData()
+	if data.Tools[0].HasError {
+		t.Error("expected HasError=false for still-running tool")
+	}
+}
+
+func TestToTranscriptData_DurationMs_ZeroByDefault(t *testing.T) {
+	// durationMs is not yet populated (reserved for a future card); must be 0.
+	es := NewExtractionState()
+	es.ProcessEntry(makeToolUseEntry("id-1", "Read", map[string]interface{}{"file_path": "x.go"}))
+	es.ProcessEntry(makeToolResultEntry("id-1", false))
+	data := es.ToTranscriptData()
+	if data.Tools[0].DurationMs != 0 {
+		t.Errorf("expected DurationMs=0 (not yet populated), got %d", data.Tools[0].DurationMs)
+	}
+}
+
 // ---- Regular tools are not tracked as agents ------------------------------
 
 func TestProcessEntry_RegularTool_NotInAgents(t *testing.T) {

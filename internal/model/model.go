@@ -41,8 +41,12 @@ type TranscriptData struct {
 
 // ToolEntry records a single tool invocation observed in the transcript.
 type ToolEntry struct {
-	Name  string
-	Count int
+	Name       string
+	Count      int
+	DurationMs int    // 0 = still running or unknown
+	HasError   bool   // true when the tool_result had is_error set
+	Category   string // file, shell, search, web, agent, internal
+	Target     string // file path, command, pattern, or other contextual string
 }
 
 // AgentEntry records a sub-agent task observed in the transcript.

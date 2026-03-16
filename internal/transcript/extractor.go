@@ -26,11 +26,14 @@ const bashTargetMaxLen = 40
 // internalTool holds richer per-invocation state than model.ToolEntry.
 // It is collapsed into model.ToolEntry by ToTranscriptData.
 type internalTool struct {
-	id        string
-	name      string
-	target    string
-	completed bool // false = running, true = completed or error
-	startTime time.Time
+	id         string
+	name       string
+	target     string
+	completed  bool // false = running, true = completed or error
+	hasError   bool
+	durationMs int
+	category   string
+	startTime  time.Time
 }
 
 // internalAgent holds richer per-invocation state than model.AgentEntry.
@@ -133,6 +136,7 @@ func (es *ExtractionState) handleRegularToolUse(b ToolUseBlock, ts time.Time) {
 		id:        b.ID,
 		name:      b.Name,
 		target:    extractTarget(b.Name, b.Input),
+		category:  toolCategory(b.Name),
 		startTime: ts,
 	}
 	es.toolMap[b.ID] = t
@@ -280,6 +284,7 @@ func (es *ExtractionState) handleTaskUpdate(b ToolUseBlock) {
 func (es *ExtractionState) processToolResult(b ToolResultBlock) {
 	if t, ok := es.toolMap[b.ToolUseID]; ok {
 		t.completed = true
+		t.hasError = b.IsError
 	}
 
 	if a, ok := es.agentMap[b.ToolUseID]; ok {
@@ -302,8 +307,12 @@ func (es *ExtractionState) ToTranscriptData() *model.TranscriptData {
 			count = 1
 		}
 		tools = append(tools, model.ToolEntry{
-			Name:  t.name,
-			Count: count,
+			Name:       t.name,
+			Count:      count,
+			DurationMs: t.durationMs,
+			HasError:   t.hasError,
+			Category:   t.category,
+			Target:     t.target,
 		})
 	}
 
@@ -347,6 +356,25 @@ func (es *ExtractionState) resolveTaskIndex(taskID string) int {
 	}
 
 	return -1
+}
+
+// toolCategory returns the display category for a tool name.
+// Categories: file, shell, search, web, agent, internal.
+func toolCategory(name string) string {
+	switch name {
+	case "Read", "Write", "Edit":
+		return "file"
+	case "Bash":
+		return "shell"
+	case "Grep", "Glob":
+		return "search"
+	case "WebFetch", "WebSearch":
+		return "web"
+	case "Agent", "Task":
+		return "agent"
+	default:
+		return "internal"
+	}
 }
 
 // extractTarget returns a short contextual string describing what a tool is
