@@ -29,6 +29,7 @@ var Registry = map[string]RenderFunc{
 	"thinking":  Thinking,
 	"tokens":    Tokens,
 	"cost":      Cost,
+	"lines":     Lines,
 }
 
 // Icons holds the icon strings for a given display mode (nerdfont, unicode, ascii).

@@ -132,11 +132,11 @@ func (g *GitStatus) IsDirty() bool {
 // Cost holds session-level cost and duration metrics from Claude Code's stdin JSON.
 // All fields are optional; zero values indicate the data was not provided.
 type Cost struct {
-	TotalCostUSD      float64 `json:"total_cost_usd"`
-	TotalDurationMs   int     `json:"total_duration_ms"`
-	TotalAPIDurationMs int    `json:"total_api_duration_ms"`
-	TotalLinesAdded   int     `json:"total_lines_added"`
-	TotalLinesRemoved int     `json:"total_lines_removed"`
+	TotalCostUSD       float64 `json:"total_cost_usd"`
+	TotalDurationMs    int     `json:"total_duration_ms"`
+	TotalAPIDurationMs int     `json:"total_api_duration_ms"`
+	TotalLinesAdded    int     `json:"total_lines_added"`
+	TotalLinesRemoved  int     `json:"total_lines_removed"`
 }
 
 // OutputStyle holds the current output style configuration from Claude Code.
