@@ -11,10 +11,12 @@ import (
 // Agents renders running and recently-completed sub-agent entries.
 // Running agents show a colored robot icon, half-circle indicator, and elapsed time.
 // Completed agents show a dim colored robot icon, check mark, and duration.
-// Returns "" when ctx.Transcript is nil or there are no agents to show.
-func Agents(ctx *model.RenderContext, cfg *config.Config) string {
+// Returns an empty WidgetResult when ctx.Transcript is nil or there are no agents to show.
+// FgColor is left empty because the widget composes multiple styles internally;
+// the renderer passes the pre-styled Text through as-is.
+func Agents(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Transcript == nil {
-		return ""
+		return WidgetResult{}
 	}
 
 	icons := IconsFor(cfg.Style.Icons)
@@ -44,7 +46,7 @@ func Agents(ctx *model.RenderContext, cfg *config.Config) string {
 	}
 
 	if len(toShow) == 0 {
-		return ""
+		return WidgetResult{}
 	}
 
 	var parts []string
@@ -52,7 +54,7 @@ func Agents(ctx *model.RenderContext, cfg *config.Config) string {
 		parts = append(parts, formatAgentEntry(a, icons))
 	}
 
-	return strings.Join(parts, " | ")
+	return WidgetResult{Text: strings.Join(parts, " | ")}
 }
 
 // formatAgentEntry renders a single agent entry with colored icon, running

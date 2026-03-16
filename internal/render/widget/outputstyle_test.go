@@ -11,8 +11,8 @@ func TestOutputStyleWidget_PresentStyleName(t *testing.T) {
 	cfg := defaultCfg()
 
 	got := OutputStyle(ctx, cfg)
-	if got != "default" {
-		t.Errorf("OutputStyle: expected %q, got %q", "default", got)
+	if got.Text != "default" {
+		t.Errorf("OutputStyle: expected %q, got %q", "default", got.Text)
 	}
 }
 
@@ -20,8 +20,8 @@ func TestOutputStyleWidget_EmptyString(t *testing.T) {
 	ctx := &model.RenderContext{OutputStyle: ""}
 	cfg := defaultCfg()
 
-	if got := OutputStyle(ctx, cfg); got != "" {
-		t.Errorf("OutputStyle with empty string: expected empty, got %q", got)
+	if got := OutputStyle(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("OutputStyle with empty string: expected empty, got %q", got.Text)
 	}
 }
 
@@ -30,8 +30,8 @@ func TestOutputStyleWidget_NilContext(t *testing.T) {
 	ctx := &model.RenderContext{}
 	cfg := defaultCfg()
 
-	if got := OutputStyle(ctx, cfg); got != "" {
-		t.Errorf("OutputStyle with zero-value context: expected empty, got %q", got)
+	if got := OutputStyle(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("OutputStyle with zero-value context: expected empty, got %q", got.Text)
 	}
 }
 
@@ -50,8 +50,8 @@ func TestOutputStyleWidget_VariousStyleNames(t *testing.T) {
 			ctx := &model.RenderContext{OutputStyle: tt.style}
 			cfg := defaultCfg()
 			got := OutputStyle(ctx, cfg)
-			if got != tt.want {
-				t.Errorf("OutputStyle(%q): expected %q, got %q", tt.style, tt.want, got)
+			if got.Text != tt.want {
+				t.Errorf("OutputStyle(%q): expected %q, got %q", tt.style, tt.want, got.Text)
 			}
 		})
 	}

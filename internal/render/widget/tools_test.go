@@ -67,7 +67,7 @@ func TestFormatDuration_RenderedInCompletedTool(t *testing.T) {
 	ctx := toolsCtx(tools)
 	cfg := defaultCfg()
 
-	got := Tools(ctx, cfg)
+	got := Tools(ctx, cfg).Text
 
 	if !strings.Contains(got, "<0.1s") {
 		t.Errorf("expected '<0.1s' for 50ms duration, got %q", got)
@@ -100,7 +100,7 @@ func TestTools_RunningFirstThenNewestCompleted(t *testing.T) {
 	ctx := toolsCtx(tools)
 	cfg := defaultCfg()
 
-	got := Tools(ctx, cfg)
+	got := Tools(ctx, cfg).Text
 
 	// Exactly 5 entries (4 separators).
 	separators := strings.Count(got, " | ")
@@ -152,7 +152,7 @@ func TestTools_SixCompleted_OldestDropped(t *testing.T) {
 	ctx := toolsCtx(tools)
 	cfg := defaultCfg()
 
-	got := Tools(ctx, cfg)
+	got := Tools(ctx, cfg).Text
 
 	// Exactly 5 entries.
 	separators := strings.Count(got, " | ")
@@ -203,7 +203,7 @@ func TestTools_OutOfOrderCompletion_DisplayOrderCorrect(t *testing.T) {
 	ctx := toolsCtx(tools)
 	cfg := defaultCfg()
 
-	got := Tools(ctx, cfg)
+	got := Tools(ctx, cfg).Text
 
 	// All three tools must appear.
 	for _, name := range []string{"ToolA", "ToolB", "ToolC"} {
@@ -254,7 +254,7 @@ func TestTools_MaxToolsBufferFillsAndPrunes(t *testing.T) {
 	ctx := toolsCtx(tools)
 	cfg := defaultCfg()
 
-	got := Tools(ctx, cfg)
+	got := Tools(ctx, cfg).Text
 
 	// Exactly 5 entries shown.
 	separators := strings.Count(got, " | ")
@@ -293,7 +293,7 @@ func TestTools_DividerHighlight(t *testing.T) {
 		ctx := toolsCtx(tools)
 		cfg := defaultCfg()
 
-		got := Tools(ctx, cfg)
+		got := Tools(ctx, cfg).Text
 
 		if strings.Contains(got, highlightSep) || strings.Contains(got, dimSep) {
 			t.Errorf("single-entry output should have no separator, got %q", got)
@@ -309,7 +309,7 @@ func TestTools_DividerHighlight(t *testing.T) {
 
 		// 2 tools = 1 separator. Any offset mod 1 = 0, so it's always highlighted.
 		for _, offset := range []int{0, 1, 5, 100} {
-			got := Tools(toolsCtxWithOffset(tools, offset), cfg)
+			got := Tools(toolsCtxWithOffset(tools, offset), cfg).Text
 			if !strings.Contains(got, highlightSep) {
 				t.Errorf("offset=%d: expected highlighted separator with 2 tools, got %q", offset, got)
 			}
@@ -328,7 +328,7 @@ func TestTools_DividerHighlight(t *testing.T) {
 		// Visible newest-first: C sep0 B sep1 A
 
 		// offset=0 → highlight position 0 (between C and B)
-		got0 := Tools(toolsCtxWithOffset(tools, 0), cfg)
+		got0 := Tools(toolsCtxWithOffset(tools, 0), cfg).Text
 		hlIdx0 := strings.Index(got0, highlightSep)
 		bIdx0 := strings.Index(got0, "B")
 		if hlIdx0 < 0 || hlIdx0 > bIdx0 {
@@ -336,7 +336,7 @@ func TestTools_DividerHighlight(t *testing.T) {
 		}
 
 		// offset=1 → highlight position 1 (between B and A)
-		got1 := Tools(toolsCtxWithOffset(tools, 1), cfg)
+		got1 := Tools(toolsCtxWithOffset(tools, 1), cfg).Text
 		hlIdx1 := strings.Index(got1, highlightSep)
 		aIdx1 := strings.Index(got1, "A")
 		if hlIdx1 < 0 || hlIdx1 > aIdx1 {
@@ -344,7 +344,7 @@ func TestTools_DividerHighlight(t *testing.T) {
 		}
 
 		// offset=2 → wraps to position 0 again
-		got2 := Tools(toolsCtxWithOffset(tools, 2), cfg)
+		got2 := Tools(toolsCtxWithOffset(tools, 2), cfg).Text
 		hlIdx2 := strings.Index(got2, highlightSep)
 		bIdx2 := strings.Index(got2, "B")
 		if hlIdx2 < 0 || hlIdx2 > bIdx2 {
@@ -365,7 +365,7 @@ func TestTools_DividerHighlight(t *testing.T) {
 		cfg := defaultCfg()
 
 		for offset := 0; offset < 9; offset++ {
-			got := Tools(toolsCtxWithOffset(tools, offset), cfg)
+			got := Tools(toolsCtxWithOffset(tools, offset), cfg).Text
 			if !strings.Contains(got, highlightSep) {
 				t.Errorf("offset=%d: expected a highlighted separator, got %q", offset, got)
 			}

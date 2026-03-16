@@ -21,17 +21,19 @@ const maxVisibleTools = 5
 // Running tools show a yellow category icon + name (default color) + elapsed indicator.
 // Completed tools show a dim category icon + name + duration.
 // Error tools show the error icon + name + duration + "err" in red.
-// Returns "" when ctx.Transcript is nil or there are no tools to show.
-func Tools(ctx *model.RenderContext, cfg *config.Config) string {
+// Returns an empty WidgetResult when ctx.Transcript is nil or there are no tools to show.
+// FgColor is left empty because the widget composes multiple styles internally;
+// the renderer passes the pre-styled Text through as-is.
+func Tools(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Transcript == nil {
-		return ""
+		return WidgetResult{}
 	}
 
 	icons := IconsFor(cfg.Style.Icons)
 	tools := ctx.Transcript.Tools
 
 	if len(tools) == 0 {
-		return ""
+		return WidgetResult{}
 	}
 
 	// Separate running from completed/error tools.
@@ -69,11 +71,11 @@ func Tools(ctx *model.RenderContext, cfg *config.Config) string {
 	// has a stable visual anchor that advances with each new tool call.
 	numSeps := len(parts) - 1
 	if numSeps <= 0 {
-		return joinWithHighlight(parts, -1)
+		return WidgetResult{Text: joinWithHighlight(parts, -1)}
 	}
 	highlightIdx := ctx.Transcript.DividerOffset % numSeps
 
-	return joinWithHighlight(parts, highlightIdx)
+	return WidgetResult{Text: joinWithHighlight(parts, highlightIdx)}
 }
 
 // joinWithHighlight joins tool entry parts with separators, highlighting one.

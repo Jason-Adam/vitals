@@ -11,10 +11,12 @@ import (
 // normal context color to warning at cfg.Thresholds.CostWarning USD, and to
 // critical at cfg.Thresholds.CostCritical USD.
 //
-// Returns "" when SessionCostUSD is zero (no cost data available).
-func Cost(ctx *model.RenderContext, cfg *config.Config) string {
+// Returns an empty WidgetResult when SessionCostUSD is zero (no cost data available).
+// FgColor is left empty because the widget selects among multiple styles dynamically;
+// the renderer passes the pre-styled Text through as-is.
+func Cost(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.SessionCostUSD == 0 {
-		return ""
+		return WidgetResult{}
 	}
 
 	// Resolve colors: prefer config overrides, fall back to package-level defaults.
@@ -40,5 +42,5 @@ func Cost(ctx *model.RenderContext, cfg *config.Config) string {
 		activeStyle = warningColor
 	}
 
-	return activeStyle.Render(fmt.Sprintf("$%.2f", cost))
+	return WidgetResult{Text: activeStyle.Render(fmt.Sprintf("$%.2f", cost))}
 }

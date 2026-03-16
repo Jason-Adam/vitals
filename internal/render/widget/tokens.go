@@ -15,14 +15,16 @@ import (
 // input_tokens, cache_creation_input_tokens, and cache_read_input_tokens. There is
 // no output_tokens field available at the time this widget runs.
 //
-// Returns "" when all token counts are zero.
-func Tokens(ctx *model.RenderContext, cfg *config.Config) string {
+// Returns an empty WidgetResult when all token counts are zero.
+// FgColor is left empty because the widget uses faint styling (dimStyle);
+// the renderer passes the pre-styled Text through as-is.
+func Tokens(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	in := ctx.InputTokens
 	cacheCreate := ctx.CacheCreation
 	cacheRead := ctx.CacheRead
 
 	if in == 0 && cacheCreate == 0 && cacheRead == 0 {
-		return ""
+		return WidgetResult{}
 	}
 
 	// Combine cache creation and cache read into a single "cache" figure for brevity.
@@ -34,5 +36,5 @@ func Tokens(ctx *model.RenderContext, cfg *config.Config) string {
 		parts = append(parts, fmt.Sprintf("%s cache", formatTokenCount(cache)))
 	}
 
-	return dimStyle.Render(strings.Join(parts, " · "))
+	return WidgetResult{Text: dimStyle.Render(strings.Join(parts, " · "))}
 }

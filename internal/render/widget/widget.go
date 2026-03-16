@@ -1,7 +1,7 @@
 // Package widget provides the registry of render functions and shared icon helpers.
 // Each widget is a RenderFunc — a function that receives a RenderContext and Config
-// and returns a lipgloss-styled string. Widgets return an empty string when they
-// have nothing to display, so callers can filter them out before joining with separators.
+// and returns a WidgetResult. Widgets return an empty WidgetResult when they have
+// nothing to display, so callers can filter them out before joining with separators.
 package widget
 
 import (
@@ -9,9 +9,26 @@ import (
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
 )
 
+// WidgetResult holds structured output from a widget render.
+//
+// Simple widgets set Text (raw, unstyled) plus FgColor/BgColor so the renderer
+// can apply lipgloss styling in one place. Complex widgets that build multi-colored
+// output internally set FgColor="" to signal the renderer should pass Text through
+// as-is (pre-styled ANSI string).
+type WidgetResult struct {
+	Text    string // raw text or pre-styled ANSI string
+	FgColor string // foreground color (lipgloss color string); empty means pass through
+	BgColor string // background color (lipgloss color string); empty means transparent
+}
+
+// IsEmpty reports whether the result has no content to display.
+func (w WidgetResult) IsEmpty() bool {
+	return w.Text == ""
+}
+
 // RenderFunc renders a single widget segment.
-// Returns empty string when the widget has nothing to display.
-type RenderFunc func(ctx *model.RenderContext, cfg *config.Config) string
+// Returns a WidgetResult with empty Text when the widget has nothing to display.
+type RenderFunc func(ctx *model.RenderContext, cfg *config.Config) WidgetResult
 
 // Registry maps widget names to their render functions.
 var Registry = map[string]RenderFunc{

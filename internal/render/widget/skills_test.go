@@ -11,8 +11,8 @@ func TestSkillsWidget_NilTranscript_ReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{}
 	cfg := defaultCfg()
 
-	if got := Skills(ctx, cfg); got != "" {
-		t.Errorf("expected empty string for nil transcript, got %q", got)
+	if got := Skills(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("expected empty for nil transcript, got %q", got.Text)
 	}
 }
 
@@ -22,8 +22,8 @@ func TestSkillsWidget_NoSkills_ReturnsEmpty(t *testing.T) {
 	}
 	cfg := defaultCfg()
 
-	if got := Skills(ctx, cfg); got != "" {
-		t.Errorf("expected empty string when no skills, got %q", got)
+	if got := Skills(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("expected empty when no skills, got %q", got.Text)
 	}
 }
 
@@ -36,8 +36,8 @@ func TestSkillsWidget_SingleSkill_DisplaysName(t *testing.T) {
 	cfg := defaultCfg()
 
 	got := Skills(ctx, cfg)
-	if !strings.Contains(got, "commit") {
-		t.Errorf("expected output to contain 'commit', got %q", got)
+	if !strings.Contains(got.Text, "commit") {
+		t.Errorf("expected output to contain 'commit', got %q", got.Text)
 	}
 }
 
@@ -54,16 +54,16 @@ func TestSkillsWidget_MultipleSkills_DisplaysNewestFirst(t *testing.T) {
 	got := Skills(ctx, cfg)
 	// All names should appear.
 	for _, name := range []string{"commit", "review-pr", "lint"} {
-		if !strings.Contains(got, name) {
-			t.Errorf("expected output to contain %q, got %q", name, got)
+		if !strings.Contains(got.Text, name) {
+			t.Errorf("expected output to contain %q, got %q", name, got.Text)
 		}
 	}
 
 	// "lint" is the newest (last in slice) so it should appear first in output.
-	lintIdx := strings.Index(got, "lint")
-	reviewIdx := strings.Index(got, "review-pr")
+	lintIdx := strings.Index(got.Text, "lint")
+	reviewIdx := strings.Index(got.Text, "review-pr")
 	if lintIdx > reviewIdx {
-		t.Errorf("expected 'lint' (newest) to appear before 'review-pr', got %q", got)
+		t.Errorf("expected 'lint' (newest) to appear before 'review-pr', got %q", got.Text)
 	}
 }
 
@@ -80,14 +80,14 @@ func TestSkillsWidget_DuplicateSkills_DeduplicatesNewestFirst(t *testing.T) {
 	got := Skills(ctx, cfg)
 
 	// "commit" should appear exactly once.
-	count := strings.Count(got, "commit")
+	count := strings.Count(got.Text, "commit")
 	if count != 1 {
-		t.Errorf("expected 'commit' to appear once after dedup, got %d occurrences in %q", count, got)
+		t.Errorf("expected 'commit' to appear once after dedup, got %d occurrences in %q", count, got.Text)
 	}
 	// "commit" is the newest (last), so it should appear before "lint".
-	commitIdx := strings.Index(got, "commit")
-	lintIdx := strings.Index(got, "lint")
+	commitIdx := strings.Index(got.Text, "commit")
+	lintIdx := strings.Index(got.Text, "lint")
 	if commitIdx > lintIdx {
-		t.Errorf("expected newest 'commit' before 'lint', got %q", got)
+		t.Errorf("expected newest 'commit' before 'lint', got %q", got.Text)
 	}
 }

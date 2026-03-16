@@ -17,10 +17,12 @@ var (
 
 // Lines renders the lines added and removed during the current session.
 // Format: "+N -M" with green for additions and red for removals.
-// Returns "" when both counts are zero or no cost data was provided.
-func Lines(ctx *model.RenderContext, cfg *config.Config) string {
+// Returns an empty WidgetResult when both counts are zero or no cost data was provided.
+// FgColor is left empty because the widget composes two different styles;
+// the renderer passes the pre-styled Text through as-is.
+func Lines(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.LinesAdded == 0 && ctx.LinesRemoved == 0 {
-		return ""
+		return WidgetResult{}
 	}
 
 	var parts []string
@@ -32,5 +34,5 @@ func Lines(ctx *model.RenderContext, cfg *config.Config) string {
 		parts = append(parts, linesRemovedStyle.Render(fmt.Sprintf("-%d", ctx.LinesRemoved)))
 	}
 
-	return strings.Join(parts, " ")
+	return WidgetResult{Text: strings.Join(parts, " ")}
 }

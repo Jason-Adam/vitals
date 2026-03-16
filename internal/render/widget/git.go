@@ -18,10 +18,12 @@ var (
 // Git renders branch name, dirty indicator, and optionally ahead/behind counts.
 // Branch name is rendered in cyan. Dirty state uses the nerdfont dirty icon when
 // cfg.Git.Dirty is true. Ahead/behind counts appear when cfg.Git.AheadBehind is true.
-// Returns "" when ctx.Git is nil.
-func Git(ctx *model.RenderContext, cfg *config.Config) string {
+// Returns an empty WidgetResult when ctx.Git is nil.
+// FgColor is left empty because the widget composes multiple styles internally;
+// the renderer passes the pre-styled Text through as-is.
+func Git(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Git == nil {
-		return ""
+		return WidgetResult{}
 	}
 
 	icons := IconsFor(cfg.Style.Icons)
@@ -48,5 +50,5 @@ func Git(ctx *model.RenderContext, cfg *config.Config) string {
 		}
 	}
 
-	return strings.Join(parts, "")
+	return WidgetResult{Text: strings.Join(parts, "")}
 }

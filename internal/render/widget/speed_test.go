@@ -20,8 +20,8 @@ func TestSpeedWidget_NoData_NilTranscript(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: nil}
 	cfg := speedCfg()
 
-	if got := Speed(ctx, cfg); got != "" {
-		t.Errorf("Speed with nil Transcript: expected empty, got %q", got)
+	if got := Speed(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Speed with nil Transcript: expected empty, got %q", got.Text)
 	}
 }
 
@@ -30,8 +30,8 @@ func TestSpeedWidget_NoData_EmptySamples(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: &model.TranscriptData{}}
 	cfg := speedCfg()
 
-	if got := Speed(ctx, cfg); got != "" {
-		t.Errorf("Speed with empty TokenSamples: expected empty, got %q", got)
+	if got := Speed(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Speed with empty TokenSamples: expected empty, got %q", got.Text)
 	}
 }
 
@@ -46,8 +46,8 @@ func TestSpeedWidget_SingleEntry(t *testing.T) {
 	cfg := speedCfg()
 
 	// Single sample: no elapsed time, so speed cannot be computed.
-	if got := Speed(ctx, cfg); got != "" {
-		t.Errorf("Speed with single sample: expected empty (no time span), got %q", got)
+	if got := Speed(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Speed with single sample: expected empty (no time span), got %q", got.Text)
 	}
 }
 
@@ -65,15 +65,15 @@ func TestSpeedWidget_MultipleEntries(t *testing.T) {
 	cfg.Speed.WindowSecs = 60 // wide window so both samples are included
 
 	got := Speed(ctx, cfg)
-	if got == "" {
+	if got.IsEmpty() {
 		t.Fatal("Speed with two samples: expected non-empty output")
 	}
-	if !strings.Contains(got, "tok/s") {
-		t.Errorf("Speed: expected 'tok/s' in output, got %q", got)
+	if !strings.Contains(got.Text, "tok/s") {
+		t.Errorf("Speed: expected 'tok/s' in output, got %q", got.Text)
 	}
 	// 2000 tokens over 10 seconds = 200 tok/s → formatted as "200 tok/s"
-	if !strings.Contains(got, "200") {
-		t.Errorf("Speed: expected '200' in output, got %q", got)
+	if !strings.Contains(got.Text, "200") {
+		t.Errorf("Speed: expected '200' in output, got %q", got.Text)
 	}
 }
 
@@ -93,19 +93,19 @@ func TestSpeedWidget_WindowExpiry(t *testing.T) {
 	cfg.Speed.WindowSecs = 30
 
 	got := Speed(ctx, cfg)
-	if got == "" {
+	if got.IsEmpty() {
 		t.Fatal("Speed with windowed samples: expected non-empty output")
 	}
-	if !strings.Contains(got, "tok/s") {
-		t.Errorf("Speed: expected 'tok/s' in output, got %q", got)
+	if !strings.Contains(got.Text, "tok/s") {
+		t.Errorf("Speed: expected 'tok/s' in output, got %q", got.Text)
 	}
 	// The old sample should be excluded. 1000 tokens over 5s = 200 tok/s.
-	if !strings.Contains(got, "200") {
-		t.Errorf("Speed window expiry: expected '200 tok/s', got %q", got)
+	if !strings.Contains(got.Text, "200") {
+		t.Errorf("Speed window expiry: expected '200 tok/s', got %q", got.Text)
 	}
 	// The large old sample (10000 tokens) must not inflate the rate.
-	if strings.Contains(got, "10") && strings.Contains(got, "k") {
-		t.Errorf("Speed window expiry: old sample inflated rate, got %q", got)
+	if strings.Contains(got.Text, "10") && strings.Contains(got.Text, "k") {
+		t.Errorf("Speed window expiry: old sample inflated rate, got %q", got.Text)
 	}
 }
 
@@ -124,15 +124,15 @@ func TestSpeedWidget_ZeroWindowUsesSessionAverage(t *testing.T) {
 	cfg.Speed.WindowSecs = 0 // session average
 
 	got := Speed(ctx, cfg)
-	if got == "" {
+	if got.IsEmpty() {
 		t.Fatal("Speed session average: expected non-empty output")
 	}
-	if !strings.Contains(got, "tok/s") {
-		t.Errorf("Speed: expected 'tok/s' in output, got %q", got)
+	if !strings.Contains(got.Text, "tok/s") {
+		t.Errorf("Speed: expected 'tok/s' in output, got %q", got.Text)
 	}
 	// 3000 / 20 = 150 tok/s
-	if !strings.Contains(got, "150") {
-		t.Errorf("Speed session average: expected '150' tok/s, got %q", got)
+	if !strings.Contains(got.Text, "150") {
+		t.Errorf("Speed session average: expected '150' tok/s, got %q", got.Text)
 	}
 }
 

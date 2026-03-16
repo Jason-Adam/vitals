@@ -14,17 +14,22 @@ import (
 // whose timestamps fall within the last WindowSecs seconds are counted.
 // When WindowSecs is <= 0 the full session history is used.
 //
-// Format: "1.2k tok/s" or "" when no data is available.
-func Speed(ctx *model.RenderContext, cfg *config.Config) string {
+// Format: "1.2k tok/s" or empty when no data is available.
+// Returns an empty WidgetResult when ctx.Transcript is nil or no token samples exist.
+func Speed(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Transcript == nil || len(ctx.Transcript.TokenSamples) == 0 {
-		return ""
+		return WidgetResult{}
 	}
 
 	samples := ctx.Transcript.TokenSamples
 	windowSecs := cfg.Speed.WindowSecs
 	if windowSecs <= 0 {
 		// Use session average: span from first sample to last.
-		return computeSpeedOverSamples(samples)
+		text := computeSpeedOverSamples(samples)
+		if text == "" {
+			return WidgetResult{}
+		}
+		return WidgetResult{Text: text}
 	}
 
 	// Find the latest timestamp to anchor the window end.
@@ -46,10 +51,14 @@ func Speed(ctx *model.RenderContext, cfg *config.Config) string {
 	}
 
 	if len(windowed) == 0 {
-		return ""
+		return WidgetResult{}
 	}
 
-	return computeSpeedOverSamples(windowed)
+	text := computeSpeedOverSamples(windowed)
+	if text == "" {
+		return WidgetResult{}
+	}
+	return WidgetResult{Text: text}
 }
 
 // computeSpeedOverSamples calculates tokens/sec for a slice of samples.

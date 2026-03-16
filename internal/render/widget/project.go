@@ -12,11 +12,13 @@ import (
 // Format: '{directory} {branch}{dirty}{ahead}{behind}'
 // e.g. 'tail-claude-hud main*' or 'tail-claude-hud feat/auth↑2'
 // Directory is magenta bold; branch name is cyan; dirty/ahead/behind are dim.
-// Returns "" when ctx.Cwd is empty.
+// Returns an empty WidgetResult when ctx.Cwd is empty.
 // When ctx.Git is nil, renders directory only (no git suffix).
-func Project(ctx *model.RenderContext, cfg *config.Config) string {
+// FgColor is left empty because the widget composes multiple styles internally;
+// the renderer passes the pre-styled Text through as-is.
+func Project(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Cwd == "" {
-		return ""
+		return WidgetResult{}
 	}
 
 	levels := cfg.Directory.Levels
@@ -28,7 +30,7 @@ func Project(ctx *model.RenderContext, cfg *config.Config) string {
 	dir := dirStyle.Render(dirName)
 
 	if ctx.Git == nil {
-		return dir
+		return WidgetResult{Text: dir}
 	}
 
 	g := ctx.Git
@@ -48,7 +50,7 @@ func Project(ctx *model.RenderContext, cfg *config.Config) string {
 
 	suffix := dimParts.String()
 	if suffix != "" {
-		return dir + " " + branch + gitDimStyle.Render(suffix)
+		return WidgetResult{Text: dir + " " + branch + gitDimStyle.Render(suffix)}
 	}
-	return dir + " " + branch
+	return WidgetResult{Text: dir + " " + branch}
 }

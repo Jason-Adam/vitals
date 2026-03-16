@@ -5,9 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/kylesnowschwartz/tail-claude-hud/internal/render/widget"
 )
 
 func TestRender_ProducesOutput(t *testing.T) {
@@ -245,5 +247,41 @@ func TestRender_ReplacesSpacesWithNBSP(t *testing.T) {
 	// Non-breaking spaces must be present (the separator has spaces).
 	if !strings.Contains(out, "\u00a0") {
 		t.Errorf("expected NBSP (U+00A0) in output, got %q", out)
+	}
+}
+
+// TestRender_PlainModeOutputIdentical verifies spec 5: plain mode output is
+// identical before and after the WidgetResult restructure. Simple widgets that
+// return FgColor must produce the same ANSI output as the old style.Render call.
+func TestRender_PlainModeOutputIdentical(t *testing.T) {
+	ctx := &model.RenderContext{
+		EnvCounts: &model.EnvCounts{MCPServers: 3, Hooks: 2},
+	}
+	cfg := config.LoadHud()
+	cfg.Lines = []config.Line{
+		{Widgets: []string{"env"}},
+	}
+
+	var buf bytes.Buffer
+	Render(&buf, ctx, cfg)
+
+	rendered := strings.TrimRight(buf.String(), "\n")
+
+	// The Env widget returns FgColor="245" with Text="3M 2H".
+	// applyWidgetStyle must produce the same ANSI color codes as the old envStyle.Render.
+	// The renderer also prepends ansiReset and converts spaces to NBSP, so we match that here.
+	styled := lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Render("3M 2H")
+	want := strings.ReplaceAll("\x1b[0m"+styled, " ", "\u00a0")
+	if rendered != want {
+		t.Errorf("plain mode output mismatch: got %q, want %q", rendered, want)
+	}
+
+	// Cross-check: verify the WidgetResult fields themselves.
+	result := widget.Registry["env"](ctx, cfg)
+	if result.FgColor != "245" {
+		t.Errorf("Env FgColor: expected '245', got %q", result.FgColor)
+	}
+	if result.Text != "3M 2H" {
+		t.Errorf("Env Text: expected '3M 2H', got %q", result.Text)
 	}
 }

@@ -17,10 +17,10 @@ var envStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
 //
 //	NM = MCP servers, NC = CLAUDE.md files, NR = rule files, NH = hooks
 //
-// Example: "3M 2C 4R 3H". Returns "" when ctx.EnvCounts is nil or all zeros.
-func Env(ctx *model.RenderContext, cfg *config.Config) string {
+// Example: "3M 2C 4R 3H". Returns an empty WidgetResult when ctx.EnvCounts is nil or all zeros.
+func Env(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.EnvCounts == nil {
-		return ""
+		return WidgetResult{}
 	}
 
 	ec := ctx.EnvCounts
@@ -40,8 +40,8 @@ func Env(ctx *model.RenderContext, cfg *config.Config) string {
 	}
 
 	if len(parts) == 0 {
-		return ""
+		return WidgetResult{}
 	}
 
-	return envStyle.Render(strings.Join(parts, " "))
+	return WidgetResult{Text: strings.Join(parts, " "), FgColor: "245"}
 }

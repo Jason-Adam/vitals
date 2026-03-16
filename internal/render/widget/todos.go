@@ -9,16 +9,18 @@ import (
 
 // Todos renders a completed/total count for the todo list.
 // Color reflects completion ratio: green when all done, yellow when partial,
-// dim when none are complete. Returns "" when ctx.Transcript is nil or the
+// dim when none are complete. Returns an empty WidgetResult when ctx.Transcript is nil or the
 // todo list is empty.
-func Todos(ctx *model.RenderContext, cfg *config.Config) string {
+// FgColor is left empty because the widget composes multiple styles internally;
+// the renderer passes the pre-styled Text through as-is.
+func Todos(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Transcript == nil {
-		return ""
+		return WidgetResult{}
 	}
 
 	todos := ctx.Transcript.Todos
 	if len(todos) == 0 {
-		return ""
+		return WidgetResult{}
 	}
 
 	total := len(todos)
@@ -32,15 +34,17 @@ func Todos(ctx *model.RenderContext, cfg *config.Config) string {
 	icons := IconsFor(cfg.Style.Icons)
 	count := fmt.Sprintf("%d/%d", done, total)
 
+	var text string
 	switch {
 	case done == total:
 		// All complete — green check.
-		return fmt.Sprintf("%s %s", greenStyle.Render(icons.Check), greenStyle.Render(count))
+		text = fmt.Sprintf("%s %s", greenStyle.Render(icons.Check), greenStyle.Render(count))
 	case done > 0:
 		// Partial — yellow spinner.
-		return fmt.Sprintf("%s %s", yellowStyle.Render(icons.Running), yellowStyle.Render(count))
+		text = fmt.Sprintf("%s %s", yellowStyle.Render(icons.Running), yellowStyle.Render(count))
 	default:
 		// Nothing done yet — dim.
-		return fmt.Sprintf("%s %s", dimStyle.Render(icons.Running), dimStyle.Render(count))
+		text = fmt.Sprintf("%s %s", dimStyle.Render(icons.Running), dimStyle.Render(count))
 	}
+	return WidgetResult{Text: text}
 }

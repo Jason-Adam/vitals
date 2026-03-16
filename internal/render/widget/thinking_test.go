@@ -11,8 +11,8 @@ func TestThinkingWidget_NilTranscriptReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: nil}
 	cfg := defaultCfg()
 
-	if got := Thinking(ctx, cfg); got != "" {
-		t.Errorf("Thinking with nil Transcript: expected empty, got %q", got)
+	if got := Thinking(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Thinking with nil Transcript: expected empty, got %q", got.Text)
 	}
 }
 
@@ -24,7 +24,7 @@ func TestThinkingWidget_ActiveShowsYellowIcon(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Thinking(ctx, cfg)
+	got := Thinking(ctx, cfg).Text
 	icons := IconsFor("ascii")
 
 	if !strings.Contains(got, icons.Thinking) {
@@ -45,8 +45,8 @@ func TestThinkingWidget_InactiveZeroCountReturnsEmpty(t *testing.T) {
 	}}
 	cfg := defaultCfg()
 
-	if got := Thinking(ctx, cfg); got != "" {
-		t.Errorf("Thinking inactive with zero count: expected empty, got %q", got)
+	if got := Thinking(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Thinking inactive with zero count: expected empty, got %q", got.Text)
 	}
 }
 
@@ -58,7 +58,7 @@ func TestThinkingWidget_InactiveWithCountShowsDim(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Thinking(ctx, cfg)
+	got := Thinking(ctx, cfg).Text
 	icons := IconsFor("ascii")
 
 	if !strings.Contains(got, icons.Thinking) {
@@ -84,7 +84,7 @@ func TestThinkingWidget_ActiveTakesPriorityOverCount(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Thinking(ctx, cfg)
+	got := Thinking(ctx, cfg).Text
 	icons := IconsFor("ascii")
 
 	want := yellowStyle.Render(icons.Thinking)

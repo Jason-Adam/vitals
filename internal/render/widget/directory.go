@@ -21,10 +21,12 @@ var dirStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("141")).Bold(true)
 //   - "basename" — last segment only, ignores cfg.Directory.Levels
 //
 // The home directory is always substituted with "~" before applying the style.
-// Returns "" when ctx.Cwd is empty.
-func Directory(ctx *model.RenderContext, cfg *config.Config) string {
+// Returns an empty WidgetResult when ctx.Cwd is empty.
+// FgColor is left empty because dirStyle uses both a foreground color and bold;
+// the renderer passes the pre-styled Text through as-is.
+func Directory(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Cwd == "" {
-		return ""
+		return WidgetResult{}
 	}
 
 	path := substituteHome(ctx.Cwd)
@@ -48,7 +50,7 @@ func Directory(ctx *model.RenderContext, cfg *config.Config) string {
 		display = lastNSegments(path, levels)
 	}
 
-	return dirStyle.Render(display)
+	return WidgetResult{Text: dirStyle.Render(display)}
 }
 
 // substituteHome replaces the user's home directory prefix with "~".

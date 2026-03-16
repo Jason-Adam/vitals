@@ -77,19 +77,20 @@ func normalizeModelName(raw string) string {
 }
 
 // Model renders the normalized model display name colored by model family.
-// Returns "" when ctx.ModelDisplayName is empty.
+// Returns an empty WidgetResult when ctx.ModelDisplayName is empty.
 //
 // Raw Bedrock model IDs (e.g. "anthropic.claude-sonnet-4-20250514-v1:0") are
 // normalized to a human-readable name before rendering.
-// The bracket color is determined by ModelFamilyColor: coral for Opus,
+// The color is determined by ModelFamilyColor: coral for Opus,
 // blue for Sonnet, green for Haiku, and default cyan for unknown models.
-func Model(ctx *model.RenderContext, cfg *config.Config) string {
+// The pre-styled text is returned so the family-specific color is preserved.
+func Model(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.ModelDisplayName == "" {
-		return ""
+		return WidgetResult{}
 	}
 
 	name := normalizeModelName(ctx.ModelDisplayName)
 	style := ModelFamilyColor(name)
 
-	return style.Render(fmt.Sprintf("[%s]", name))
+	return WidgetResult{Text: style.Render(fmt.Sprintf("[%s]", name))}
 }

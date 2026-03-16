@@ -22,29 +22,29 @@ var durationStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
 //     a fallback when stdin duration is not available.
 //
 // Format: "Xh Ym" for sessions >= 1 hour, "Ym Xs" for shorter sessions.
-// Returns "" when neither source provides usable data.
-func Duration(ctx *model.RenderContext, cfg *config.Config) string {
+// Returns an empty WidgetResult when neither source provides usable data.
+func Duration(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	icons := IconsFor(cfg.Style.Icons)
 
 	// Prefer the authoritative duration from stdin when available.
 	if ctx.TotalDurationMs > 0 {
 		elapsed := time.Duration(ctx.TotalDurationMs) * time.Millisecond
-		return durationStyle.Render(fmt.Sprintf("%s%s", icons.Clock, formatElapsed(elapsed)))
+		return WidgetResult{Text: fmt.Sprintf("%s%s", icons.Clock, formatElapsed(elapsed)), FgColor: "245"}
 	}
 
 	// Fall back to transcript-derived start time.
 	if ctx.SessionStart == "" {
-		return ""
+		return WidgetResult{}
 	}
 
 	start, err := time.Parse(time.RFC3339, ctx.SessionStart)
 	if err != nil {
 		// SessionStart may already be a pre-formatted string — render as-is.
-		return durationStyle.Render(fmt.Sprintf("%s%s", icons.Clock, ctx.SessionStart))
+		return WidgetResult{Text: fmt.Sprintf("%s%s", icons.Clock, ctx.SessionStart), FgColor: "245"}
 	}
 
 	elapsed := time.Since(start)
-	return durationStyle.Render(fmt.Sprintf("%s%s", icons.Clock, formatElapsed(elapsed)))
+	return WidgetResult{Text: fmt.Sprintf("%s%s", icons.Clock, formatElapsed(elapsed)), FgColor: "245"}
 }
 
 // formatElapsed formats a duration as "Xh Ym" or "Ym Xs".

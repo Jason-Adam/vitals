@@ -6,10 +6,10 @@ import (
 )
 
 // OutputStyle renders the current Claude Code output style name.
-// Returns "" when ctx.OutputStyle is empty (data not present in stdin).
-func OutputStyle(ctx *model.RenderContext, cfg *config.Config) string {
+// Returns an empty WidgetResult when ctx.OutputStyle is empty.
+func OutputStyle(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.OutputStyle == "" {
-		return ""
+		return WidgetResult{}
 	}
-	return ctx.OutputStyle
+	return WidgetResult{Text: ctx.OutputStyle}
 }

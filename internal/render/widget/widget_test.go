@@ -20,7 +20,7 @@ func TestModelWidget_DisplaysNameInBrackets(t *testing.T) {
 	ctx := &model.RenderContext{ModelDisplayName: "Opus", ContextWindowSize: 200000}
 	cfg := defaultCfg()
 
-	got := Model(ctx, cfg)
+	got := Model(ctx, cfg).Text
 	if !strings.Contains(got, "Opus") {
 		t.Errorf("expected output to contain 'Opus', got %q", got)
 	}
@@ -35,7 +35,7 @@ func TestModelWidget_NeverShowsContextSize(t *testing.T) {
 	ctx := &model.RenderContext{ModelDisplayName: "Sonnet", ContextWindowSize: 200000}
 	cfg := defaultCfg()
 
-	got := Model(ctx, cfg)
+	got := Model(ctx, cfg).Text
 	if strings.Contains(got, "context") {
 		t.Errorf("expected no context size in model widget, got %q", got)
 	}
@@ -48,8 +48,8 @@ func TestModelWidget_EmptyName(t *testing.T) {
 	ctx := &model.RenderContext{}
 	cfg := defaultCfg()
 
-	if got := Model(ctx, cfg); got != "" {
-		t.Errorf("expected empty string for empty model name, got %q", got)
+	if got := Model(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("expected empty result for empty model name, got %q", got.Text)
 	}
 }
 
@@ -57,7 +57,7 @@ func TestContextWidget_GreenUnder70(t *testing.T) {
 	ctx := &model.RenderContext{ContextPercent: 50, ContextWindowSize: 200000}
 	cfg := defaultCfg()
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "50%") {
 		t.Errorf("expected '50%%' in output, got %q", got)
 	}
@@ -67,7 +67,7 @@ func TestContextWidget_YellowAt70(t *testing.T) {
 	ctx := &model.RenderContext{ContextPercent: 75, ContextWindowSize: 200000}
 	cfg := defaultCfg()
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "75%") {
 		t.Errorf("expected '75%%' in output, got %q", got)
 	}
@@ -77,7 +77,7 @@ func TestContextWidget_RedAt85(t *testing.T) {
 	ctx := &model.RenderContext{ContextPercent: 90, ContextWindowSize: 200000}
 	cfg := defaultCfg()
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "90%") {
 		t.Errorf("expected '90%%' in output, got %q", got)
 	}
@@ -87,8 +87,8 @@ func TestContextWidget_EmptyWhenZero(t *testing.T) {
 	ctx := &model.RenderContext{}
 	cfg := defaultCfg()
 
-	if got := Context(ctx, cfg); got != "" {
-		t.Errorf("expected empty string for zero context, got %q", got)
+	if got := Context(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("expected empty result for zero context, got %q", got.Text)
 	}
 }
 
@@ -97,7 +97,7 @@ func TestContextWidget_PercentMode(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.Value = "percent"
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "42%") {
 		t.Errorf("percent mode: expected '42%%' in output, got %q", got)
 	}
@@ -109,7 +109,7 @@ func TestContextWidget_PercentModeDefault(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.Value = ""
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "55%") {
 		t.Errorf("empty value mode: expected '55%%' in output, got %q", got)
 	}
@@ -126,7 +126,7 @@ func TestContextWidget_TokensMode(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.Value = "tokens"
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	// used = 80000+4000 = 84000 → "84.0k", total = 200000 → "200k"
 	if !strings.Contains(got, "84.0k") {
 		t.Errorf("tokens mode: expected used '84.0k' in output, got %q", got)
@@ -147,7 +147,7 @@ func TestContextWidget_RemainingMode(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.Value = "remaining"
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	// remaining = 200000 - 84000 = 116000 → "116k"
 	if !strings.Contains(got, "116k") {
 		t.Errorf("remaining mode: expected '116k' in output, got %q", got)
@@ -168,7 +168,7 @@ func TestContextWidget_BreakdownAppearsAbove85(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.ShowBreakdown = true
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "in:") {
 		t.Errorf("breakdown: expected 'in:' in output, got %q", got)
 	}
@@ -191,7 +191,7 @@ func TestContextWidget_BreakdownNotAppearsBelow85(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.ShowBreakdown = true
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if strings.Contains(got, "in:") {
 		t.Errorf("breakdown: expected no breakdown at 80%%, got %q", got)
 	}
@@ -208,7 +208,7 @@ func TestContextWidget_BreakdownDisabled(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.ShowBreakdown = false
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if strings.Contains(got, "in:") {
 		t.Errorf("breakdown disabled: expected no breakdown, got %q", got)
 	}
@@ -334,7 +334,7 @@ func TestContextWidget_BarMode_ContainsBlockChars(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.Display = "bar"
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "█") {
 		t.Errorf("bar mode: expected filled block char '█', got %q", got)
 	}
@@ -353,7 +353,7 @@ func TestContextWidget_BarMode_ZeroPercent(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.Display = "bar"
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "░") {
 		t.Errorf("bar mode 0%%: expected all-empty bar (░), got %q", got)
 	}
@@ -367,7 +367,7 @@ func TestContextWidget_BarMode_FullPercent(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.Display = "bar"
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "█") {
 		t.Errorf("bar mode 100%%: expected filled bar (█), got %q", got)
 	}
@@ -382,7 +382,7 @@ func TestContextWidget_BothMode_ContainsBarAndLabel(t *testing.T) {
 	cfg.Context.Display = "both"
 	cfg.Context.Value = "percent"
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "█") && !strings.Contains(got, "░") {
 		t.Errorf("both mode: expected block chars, got %q", got)
 	}
@@ -396,7 +396,7 @@ func TestContextWidget_TextMode_NoBlockChars(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.Display = "text"
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if strings.Contains(got, "█") || strings.Contains(got, "░") {
 		t.Errorf("text mode: expected no block chars, got %q", got)
 	}
@@ -411,7 +411,7 @@ func TestContextWidget_DefaultDisplayIsText(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Context.Display = ""
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if strings.Contains(got, "█") || strings.Contains(got, "░") {
 		t.Errorf("empty display: expected text mode (no block chars), got %q", got)
 	}
@@ -426,7 +426,7 @@ func TestContextWidget_BarWidthConfigurable(t *testing.T) {
 	cfg.Context.Display = "bar"
 	cfg.Context.BarWidth = 5
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	// Strip ANSI sequences by checking raw rune count of block chars.
 	filled := strings.Count(got, "█")
 	empty := strings.Count(got, "░")
@@ -465,7 +465,7 @@ func TestDirectoryWidget_SingleSegment(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Directory.Levels = 1
 
-	got := Directory(ctx, cfg)
+	got := Directory(ctx, cfg).Text
 	if !strings.Contains(got, "tail-claude-hud") {
 		t.Errorf("expected 'tail-claude-hud', got %q", got)
 	}
@@ -476,7 +476,7 @@ func TestDirectoryWidget_MultipleSegments(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Directory.Levels = 2
 
-	got := Directory(ctx, cfg)
+	got := Directory(ctx, cfg).Text
 	if !strings.Contains(got, "my-projects/tail-claude-hud") {
 		t.Errorf("expected 2 segments, got %q", got)
 	}
@@ -486,8 +486,8 @@ func TestDirectoryWidget_EmptyCwd(t *testing.T) {
 	ctx := &model.RenderContext{}
 	cfg := defaultCfg()
 
-	if got := Directory(ctx, cfg); got != "" {
-		t.Errorf("expected empty string for empty cwd, got %q", got)
+	if got := Directory(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("expected empty result for empty cwd, got %q", got.Text)
 	}
 }
 
@@ -507,12 +507,12 @@ func TestTranscriptWidgets_NilTranscriptReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: nil}
 	cfg := defaultCfg()
 
-	// All transcript-powered widgets must return "" when Transcript is nil.
+	// All transcript-powered widgets must return empty when Transcript is nil.
 	widgets := []string{"tools", "agents", "todos", "session", "thinking", "messages", "speed"}
 	for _, name := range widgets {
 		fn := Registry[name]
-		if got := fn(ctx, cfg); got != "" {
-			t.Errorf("widget %q with nil Transcript: expected empty, got %q", name, got)
+		if got := fn(ctx, cfg); !got.IsEmpty() {
+			t.Errorf("widget %q with nil Transcript: expected empty, got %q", name, got.Text)
 		}
 	}
 }
@@ -523,8 +523,8 @@ func TestToolsWidget_EmptyToolsReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: &model.TranscriptData{}}
 	cfg := defaultCfg()
 
-	if got := Tools(ctx, cfg); got != "" {
-		t.Errorf("Tools with empty tools: expected empty, got %q", got)
+	if got := Tools(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Tools with empty tools: expected empty, got %q", got.Text)
 	}
 }
 
@@ -536,7 +536,7 @@ func TestToolsWidget_RunningToolShowsCategoryIconAndName(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Tools(ctx, cfg)
+	got := Tools(ctx, cfg).Text
 	icons := IconsFor("ascii")
 	if !strings.Contains(got, icons.Read) {
 		t.Errorf("Tools running: expected Read category icon %q, got %q", icons.Read, got)
@@ -553,7 +553,7 @@ func TestToolsWidget_RunningToolShowsYellowIconNoSpinner(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Tools(ctx, cfg)
+	got := Tools(ctx, cfg).Text
 	if !strings.Contains(got, "Bash") {
 		t.Errorf("Running tool should contain name 'Bash', got %q", got)
 	}
@@ -575,7 +575,7 @@ func TestToolsWidget_CompletedToolShowsDimCategoryIconAndDuration(t *testing.T) 
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Tools(ctx, cfg)
+	got := Tools(ctx, cfg).Text
 	if !strings.Contains(got, "Write") {
 		t.Errorf("Tools completed: expected tool name 'Write', got %q", got)
 	}
@@ -597,7 +597,7 @@ func TestToolsWidget_ErrorToolShowsRedCategoryIcon(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Tools(ctx, cfg)
+	got := Tools(ctx, cfg).Text
 	icons := IconsFor("ascii")
 	// Error uses category icon (not error icon) in red.
 	if !strings.Contains(got, icons.Shell) {
@@ -622,7 +622,7 @@ func TestToolsWidget_MaxFiveToolsShown(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: &model.TranscriptData{Tools: tools}}
 	cfg := defaultCfg()
 
-	got := Tools(ctx, cfg)
+	got := Tools(ctx, cfg).Text
 	// Count separator occurrences: 4 " | " means 5 parts.
 	count := strings.Count(got, " | ")
 	if count != 4 {
@@ -639,8 +639,8 @@ func TestToolsWidget_NilTranscriptReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: nil}
 	cfg := defaultCfg()
 
-	if got := Tools(ctx, cfg); got != "" {
-		t.Errorf("Tools nil transcript: expected empty, got %q", got)
+	if got := Tools(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Tools nil transcript: expected empty, got %q", got.Text)
 	}
 }
 
@@ -682,8 +682,8 @@ func TestAgentsWidget_EmptyAgentsReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: &model.TranscriptData{}}
 	cfg := defaultCfg()
 
-	if got := Agents(ctx, cfg); got != "" {
-		t.Errorf("Agents with empty agents: expected empty, got %q", got)
+	if got := Agents(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Agents with empty agents: expected empty, got %q", got.Text)
 	}
 }
 
@@ -697,7 +697,7 @@ func TestAgentsWidget_RunningAgentShowsColoredIconAndRunningIndicator(t *testing
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Agents(ctx, cfg)
+	got := Agents(ctx, cfg).Text
 
 	// Agent name must appear.
 	if !strings.Contains(got, "explore") {
@@ -723,7 +723,7 @@ func TestAgentsWidget_RunningAgentUsesAgentIcon(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Agents(ctx, cfg)
+	got := Agents(ctx, cfg).Text
 	icons := IconsFor("ascii")
 	// The agent icon should be rendered (ASCII mode uses "@" for Agent).
 	if !strings.Contains(got, icons.Agent) {
@@ -740,7 +740,7 @@ func TestAgentsWidget_CompletedAgentShowsCheck(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Agents(ctx, cfg)
+	got := Agents(ctx, cfg).Text
 	icons := IconsFor("ascii")
 	if !strings.Contains(got, icons.Check) {
 		t.Errorf("Agents completed: expected check icon %q, got %q", icons.Check, got)
@@ -774,7 +774,7 @@ func TestAgentsWidget_ModelSuffixShownWhenPresent(t *testing.T) {
 	}}
 	cfg := defaultCfg()
 
-	got := Agents(ctx, cfg)
+	got := Agents(ctx, cfg).Text
 	if !strings.Contains(got, "haiku") {
 		t.Errorf("Agents: expected model family 'haiku' in output, got %q", got)
 	}
@@ -788,7 +788,7 @@ func TestAgentsWidget_NoModelSuffixWhenAbsent(t *testing.T) {
 	}}
 	cfg := defaultCfg()
 
-	got := Agents(ctx, cfg)
+	got := Agents(ctx, cfg).Text
 	if strings.Contains(got, "(") {
 		t.Errorf("Agents: expected no model suffix when Model is empty, got %q", got)
 	}
@@ -808,7 +808,7 @@ func TestAgentsWidget_MaxFiveTotal(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: &model.TranscriptData{Agents: agents}}
 	cfg := defaultCfg()
 
-	got := Agents(ctx, cfg)
+	got := Agents(ctx, cfg).Text
 	// Count the " | " separators — 4 separators means 5 entries.
 	separators := strings.Count(got, " | ")
 	if separators > 4 {
@@ -822,8 +822,8 @@ func TestTodosWidget_EmptyTodosReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: &model.TranscriptData{}}
 	cfg := defaultCfg()
 
-	if got := Todos(ctx, cfg); got != "" {
-		t.Errorf("Todos with empty list: expected empty, got %q", got)
+	if got := Todos(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Todos with empty list: expected empty, got %q", got.Text)
 	}
 }
 
@@ -837,7 +837,7 @@ func TestTodosWidget_AllDoneShowsGreenCheck(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Todos(ctx, cfg)
+	got := Todos(ctx, cfg).Text
 	icons := IconsFor("ascii")
 	if !strings.Contains(got, icons.Check) {
 		t.Errorf("Todos all done: expected check icon %q, got %q", icons.Check, got)
@@ -857,7 +857,7 @@ func TestTodosWidget_PartialDoneShowsCount(t *testing.T) {
 	}}
 	cfg := defaultCfg()
 
-	got := Todos(ctx, cfg)
+	got := Todos(ctx, cfg).Text
 	if !strings.Contains(got, "1/3") {
 		t.Errorf("Todos partial: expected '1/3', got %q", got)
 	}
@@ -872,7 +872,7 @@ func TestTodosWidget_NoneDoneShowsDimCount(t *testing.T) {
 	}}
 	cfg := defaultCfg()
 
-	got := Todos(ctx, cfg)
+	got := Todos(ctx, cfg).Text
 	if !strings.Contains(got, "0/2") {
 		t.Errorf("Todos none done: expected '0/2', got %q", got)
 	}
@@ -884,8 +884,8 @@ func TestEnvWidget_NilEnvCountsReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{EnvCounts: nil}
 	cfg := defaultCfg()
 
-	if got := Env(ctx, cfg); got != "" {
-		t.Errorf("Env with nil EnvCounts: expected empty, got %q", got)
+	if got := Env(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Env with nil EnvCounts: expected empty, got %q", got.Text)
 	}
 }
 
@@ -893,8 +893,8 @@ func TestEnvWidget_ZeroCountsReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{}}
 	cfg := defaultCfg()
 
-	if got := Env(ctx, cfg); got != "" {
-		t.Errorf("Env with all-zero counts: expected empty, got %q", got)
+	if got := Env(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Env with all-zero counts: expected empty, got %q", got.Text)
 	}
 }
 
@@ -907,7 +907,7 @@ func TestEnvWidget_CompactFormat_AllCategories(t *testing.T) {
 	}}
 	cfg := defaultCfg()
 
-	got := Env(ctx, cfg)
+	got := Env(ctx, cfg).Text
 	// Each category must appear with its letter suffix.
 	for _, want := range []string{"3M", "2C", "4R", "1H"} {
 		if !strings.Contains(got, want) {
@@ -924,7 +924,7 @@ func TestEnvWidget_SkipsZeroCategories(t *testing.T) {
 	}}
 	cfg := defaultCfg()
 
-	got := Env(ctx, cfg)
+	got := Env(ctx, cfg).Text
 	if !strings.Contains(got, "5M") {
 		t.Errorf("Env: expected '5M', got %q", got)
 	}
@@ -943,7 +943,7 @@ func TestEnvWidget_MCPOnly(t *testing.T) {
 	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{MCPServers: 3}}
 	cfg := defaultCfg()
 
-	got := Env(ctx, cfg)
+	got := Env(ctx, cfg).Text
 	if !strings.Contains(got, "3M") {
 		t.Errorf("Env MCPOnly: expected '3M' in output, got %q", got)
 	}
@@ -953,7 +953,7 @@ func TestEnvWidget_ClaudeMdOnly(t *testing.T) {
 	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{ClaudeMdFiles: 2}}
 	cfg := defaultCfg()
 
-	got := Env(ctx, cfg)
+	got := Env(ctx, cfg).Text
 	if !strings.Contains(got, "2C") {
 		t.Errorf("Env ClaudeMdOnly: expected '2C' in output, got %q", got)
 	}
@@ -963,7 +963,7 @@ func TestEnvWidget_RuleFilesOnly(t *testing.T) {
 	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{RuleFiles: 4}}
 	cfg := defaultCfg()
 
-	got := Env(ctx, cfg)
+	got := Env(ctx, cfg).Text
 	if !strings.Contains(got, "4R") {
 		t.Errorf("Env RuleFilesOnly: expected '4R' in output, got %q", got)
 	}
@@ -973,7 +973,7 @@ func TestEnvWidget_HooksOnly(t *testing.T) {
 	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{Hooks: 3}}
 	cfg := defaultCfg()
 
-	got := Env(ctx, cfg)
+	got := Env(ctx, cfg).Text
 	if !strings.Contains(got, "3H") {
 		t.Errorf("Env HooksOnly: expected '3H' in output, got %q", got)
 	}
@@ -985,8 +985,8 @@ func TestDurationWidget_EmptySessionStartReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{SessionStart: ""}
 	cfg := defaultCfg()
 
-	if got := Duration(ctx, cfg); got != "" {
-		t.Errorf("Duration with empty SessionStart: expected empty, got %q", got)
+	if got := Duration(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Duration with empty SessionStart: expected empty, got %q", got.Text)
 	}
 }
 
@@ -996,7 +996,7 @@ func TestDurationWidget_RendersTimestamp(t *testing.T) {
 	ctx := &model.RenderContext{SessionStart: start}
 	cfg := defaultCfg()
 
-	got := Duration(ctx, cfg)
+	got := Duration(ctx, cfg).Text
 	if !strings.Contains(got, "h") {
 		t.Errorf("Duration >= 1h: expected 'h' in output, got %q", got)
 	}
@@ -1010,7 +1010,7 @@ func TestDurationWidget_ShortSession(t *testing.T) {
 	ctx := &model.RenderContext{SessionStart: start}
 	cfg := defaultCfg()
 
-	got := Duration(ctx, cfg)
+	got := Duration(ctx, cfg).Text
 	if !strings.Contains(got, "m") {
 		t.Errorf("Duration < 1h: expected 'm' in output, got %q", got)
 	}
@@ -1025,7 +1025,7 @@ func TestDurationWidget_UsesIconLookup(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Duration(ctx, cfg)
+	got := Duration(ctx, cfg).Text
 	icons := IconsFor("ascii")
 	if !strings.Contains(got, icons.Clock) {
 		t.Errorf("Duration(ascii): expected clock icon %q, got %q", icons.Clock, got)
@@ -1038,8 +1038,8 @@ func TestGitWidget_NilGitReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{Git: nil}
 	cfg := defaultCfg()
 
-	if got := Git(ctx, cfg); got != "" {
-		t.Errorf("Git with nil Git: expected empty, got %q", got)
+	if got := Git(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Git with nil Git: expected empty, got %q", got.Text)
 	}
 }
 
@@ -1047,7 +1047,7 @@ func TestGitWidget_ShowsBranch(t *testing.T) {
 	ctx := &model.RenderContext{Git: &model.GitStatus{Branch: "main"}}
 	cfg := defaultCfg()
 
-	got := Git(ctx, cfg)
+	got := Git(ctx, cfg).Text
 	if !strings.Contains(got, "main") {
 		t.Errorf("Git: expected 'main' in output, got %q", got)
 	}
@@ -1058,7 +1058,7 @@ func TestGitWidget_DirtyIndicator(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Git.Dirty = true
 
-	got := Git(ctx, cfg)
+	got := Git(ctx, cfg).Text
 	if !strings.Contains(got, "*") {
 		t.Errorf("Git dirty: expected '*' in output, got %q", got)
 	}
@@ -1069,7 +1069,7 @@ func TestGitWidget_CleanNoDirtyIndicator(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Git.Dirty = true
 
-	got := Git(ctx, cfg)
+	got := Git(ctx, cfg).Text
 	if strings.Contains(got, "*") {
 		t.Errorf("Git clean: expected no '*', got %q", got)
 	}
@@ -1080,7 +1080,7 @@ func TestGitWidget_AheadBehindCounts(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Git.AheadBehind = true
 
-	got := Git(ctx, cfg)
+	got := Git(ctx, cfg).Text
 	if !strings.Contains(got, "+2") {
 		t.Errorf("Git ahead: expected '+2', got %q", got)
 	}
@@ -1094,7 +1094,7 @@ func TestGitWidget_UsesIconLookup(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Style.Icons = "ascii"
 
-	got := Git(ctx, cfg)
+	got := Git(ctx, cfg).Text
 	icons := IconsFor("ascii")
 	if !strings.Contains(got, icons.Branch) {
 		t.Errorf("Git(ascii): expected branch icon %q, got %q", icons.Branch, got)
@@ -1141,7 +1141,7 @@ func TestModelWidget_DisplayNameAlreadyHasContext(t *testing.T) {
 	}
 	cfg := defaultCfg()
 
-	got := Model(ctx, cfg)
+	got := Model(ctx, cfg).Text
 	if strings.Contains(got, "context") {
 		t.Errorf("expected no 'context' in output, got %q", got)
 	}
@@ -1261,7 +1261,7 @@ func TestModelWidget_NormalizesBedrockID(t *testing.T) {
 	}
 	cfg := defaultCfg()
 
-	got := Model(ctx, cfg)
+	got := Model(ctx, cfg).Text
 	if !strings.Contains(got, "Claude Sonnet 4") {
 		t.Errorf("Model widget: expected 'Claude Sonnet 4', got %q", got)
 	}
@@ -1276,7 +1276,7 @@ func TestModelWidget_OpusRendersInCoral(t *testing.T) {
 	ctx := &model.RenderContext{ModelDisplayName: "claude-opus-4-6"}
 	cfg := defaultCfg()
 
-	got := Model(ctx, cfg)
+	got := Model(ctx, cfg).Text
 	// Coral is ANSI color 204. Verify the rendered output contains the ANSI sequence.
 	coralStyle := ModelFamilyColor("Claude Opus 4.6")
 	want := coralStyle.Render("[Claude Opus 4.6]")
@@ -1289,7 +1289,7 @@ func TestModelWidget_SonnetRendersInBlue(t *testing.T) {
 	ctx := &model.RenderContext{ModelDisplayName: "claude-sonnet-4-6"}
 	cfg := defaultCfg()
 
-	got := Model(ctx, cfg)
+	got := Model(ctx, cfg).Text
 	blueStyle := ModelFamilyColor("Claude Sonnet 4.6")
 	want := blueStyle.Render("[Claude Sonnet 4.6]")
 	if got != want {
@@ -1301,7 +1301,7 @@ func TestModelWidget_HaikuRendersInGreen(t *testing.T) {
 	ctx := &model.RenderContext{ModelDisplayName: "claude-haiku-3-5"}
 	cfg := defaultCfg()
 
-	got := Model(ctx, cfg)
+	got := Model(ctx, cfg).Text
 	greenStyle := ModelFamilyColor("Claude Haiku 3.5")
 	want := greenStyle.Render("[Claude Haiku 3.5]")
 	if got != want {
@@ -1313,7 +1313,7 @@ func TestModelWidget_UnknownRendersInCyan(t *testing.T) {
 	ctx := &model.RenderContext{ModelDisplayName: "gpt-4o"}
 	cfg := defaultCfg()
 
-	got := Model(ctx, cfg)
+	got := Model(ctx, cfg).Text
 	cyanStyle := ModelFamilyColor("gpt-4o")
 	want := cyanStyle.Render("[gpt-4o]")
 	if got != want {
@@ -1351,7 +1351,7 @@ func TestContextWidget_DefaultColorsApplied(t *testing.T) {
 	ctx := &model.RenderContext{ContextPercent: 50, ContextWindowSize: 200000}
 	cfg := defaultCfg()
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "50%") {
 		t.Errorf("Context with defaults: expected '50%%', got %q", got)
 	}
@@ -1365,7 +1365,7 @@ func TestContextWidget_ColorOverrideApplied(t *testing.T) {
 	cfg.Style.Colors.Warning = "#ffff00"
 	cfg.Style.Colors.Critical = "#ff0000"
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "50%") {
 		t.Errorf("Context with color overrides: expected '50%%', got %q", got)
 	}
@@ -1379,7 +1379,7 @@ func TestContextWidget_EmptyColorsUseDefaults(t *testing.T) {
 	cfg.Style.Colors.Warning = ""
 	cfg.Style.Colors.Critical = ""
 
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "90%") {
 		t.Errorf("Context with empty colors: expected '90%%', got %q", got)
 	}
@@ -1393,7 +1393,7 @@ func TestDirectoryWidget_StyleFull(t *testing.T) {
 	cfg.Directory.Style = "full"
 	cfg.Directory.Levels = 3
 
-	got := Directory(ctx, cfg)
+	got := Directory(ctx, cfg).Text
 	if !strings.Contains(got, "Code/my-projects/tail-claude-hud") {
 		t.Errorf("full style: expected last 3 segments, got %q", got)
 	}
@@ -1407,7 +1407,7 @@ func TestDirectoryWidget_StyleFish(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Directory.Style = "fish"
 
-	got := Directory(ctx, cfg)
+	got := Directory(ctx, cfg).Text
 	if !strings.Contains(got, "tail-claude-hud") {
 		t.Errorf("fish style: expected last segment 'tail-claude-hud' intact, got %q", got)
 	}
@@ -1428,7 +1428,7 @@ func TestDirectoryWidget_StyleBasename(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Directory.Style = "basename"
 
-	got := Directory(ctx, cfg)
+	got := Directory(ctx, cfg).Text
 	if !strings.Contains(got, "tail-claude-hud") {
 		t.Errorf("basename style: expected 'tail-claude-hud', got %q", got)
 	}
@@ -1447,7 +1447,7 @@ func TestDirectoryWidget_HomeSubstitution(t *testing.T) {
 	cfg.Directory.Style = "full"
 	cfg.Directory.Levels = 5 // show everything
 
-	got := Directory(ctx, cfg)
+	got := Directory(ctx, cfg).Text
 	// The tilde must appear; the raw home path must not.
 	if !strings.Contains(got, "~") {
 		t.Errorf("home substitution: expected '~' in output, got %q", got)
@@ -1474,7 +1474,7 @@ func TestDirectoryWidget_FishRootAbsolutePath(t *testing.T) {
 	cfg := defaultCfg()
 	cfg.Directory.Style = "fish"
 
-	got := Directory(ctx, cfg)
+	got := Directory(ctx, cfg).Text
 	if !strings.Contains(got, "bin") {
 		t.Errorf("fish absolute: expected last segment 'bin' intact, got %q", got)
 	}
@@ -1510,7 +1510,7 @@ func TestContextWidget_BelowWarningUsesNormalColor(t *testing.T) {
 	ctx := &model.RenderContext{ContextPercent: 50, ContextWindowSize: 200000}
 	cfg := defaultCfg()
 	// Render at normal and at warning color to confirm they differ.
-	got := Context(ctx, cfg)
+	got := Context(ctx, cfg).Text
 	if !strings.Contains(got, "50%") {
 		t.Errorf("below warning: expected '50%%' in output, got %q", got)
 	}
@@ -1522,8 +1522,8 @@ func TestContextWidget_AtWarningThresholdUsesWarningColor(t *testing.T) {
 	cfg := defaultCfg()
 
 	normalCtx := &model.RenderContext{ContextPercent: 50, ContextWindowSize: 200000}
-	gotWarning := Context(ctx, cfg)
-	gotNormal := Context(normalCtx, cfg)
+	gotWarning := Context(ctx, cfg).Text
+	gotNormal := Context(normalCtx, cfg).Text
 
 	// The ANSI sequences must differ since colors differ.
 	if gotWarning == gotNormal {
@@ -1537,8 +1537,8 @@ func TestContextWidget_AtCriticalThresholdUsesCriticalColor(t *testing.T) {
 	cfg := defaultCfg()
 
 	warnCtx := &model.RenderContext{ContextPercent: 70, ContextWindowSize: 200000}
-	gotCritical := Context(ctx, cfg)
-	gotWarning := Context(warnCtx, cfg)
+	gotCritical := Context(ctx, cfg).Text
+	gotWarning := Context(warnCtx, cfg).Text
 
 	if gotCritical == gotWarning {
 		t.Errorf("at critical threshold: expected different styling from warning, but both rendered the same ANSI output")
@@ -1555,8 +1555,8 @@ func TestContextWidget_AboveCriticalThresholdUsesCriticalColor(t *testing.T) {
 	cfg.Context.ShowBreakdown = false
 	cfg.Style.Icons = "ascii"
 
-	got95 := Context(ctx95, cfg)
-	got85 := Context(ctx85, cfg)
+	got95 := Context(ctx95, cfg).Text
+	got85 := Context(ctx85, cfg).Text
 
 	if !strings.Contains(got95, "95%") {
 		t.Errorf("above critical: expected '95%%' in output, got %q", got95)
@@ -1577,8 +1577,8 @@ func TestContextWidget_CustomWarningThreshold(t *testing.T) {
 	cfg.Thresholds.ContextWarning = 60
 	cfg.Thresholds.ContextCritical = 80
 
-	got60 := Context(ctx60, cfg)
-	got50 := Context(ctx50, cfg)
+	got60 := Context(ctx60, cfg).Text
+	got50 := Context(ctx50, cfg).Text
 
 	// 60% should use warning color; 50% should use normal color.
 	if got60 == got50 {
@@ -1592,8 +1592,8 @@ func TestCostWidget_ZeroReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{SessionCostUSD: 0}
 	cfg := defaultCfg()
 
-	if got := Cost(ctx, cfg); got != "" {
-		t.Errorf("Cost zero: expected empty string, got %q", got)
+	if got := Cost(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Cost zero: expected empty, got %q", got.Text)
 	}
 }
 
@@ -1602,8 +1602,8 @@ func TestCostWidget_BelowWarningUsesNormalColor(t *testing.T) {
 	cfg := defaultCfg()
 
 	got := Cost(ctx, cfg)
-	if !strings.Contains(got, "$2.50") {
-		t.Errorf("Cost below warning: expected '$2.50' in output, got %q", got)
+	if !strings.Contains(got.Text, "$2.50") {
+		t.Errorf("Cost below warning: expected '$2.50' in output, got %q", got.Text)
 	}
 }
 
@@ -1615,11 +1615,11 @@ func TestCostWidget_AtWarningThresholdUsesWarningColor(t *testing.T) {
 	gotWarn := Cost(ctxWarn, cfg)
 	gotNorm := Cost(ctxNorm, cfg)
 
-	if gotWarn == gotNorm {
+	if gotWarn.Text == gotNorm.Text {
 		t.Errorf("Cost at warning: expected different styling from normal")
 	}
-	if !strings.Contains(gotWarn, "$5.00") {
-		t.Errorf("Cost at warning: expected '$5.00' in output, got %q", gotWarn)
+	if !strings.Contains(gotWarn.Text, "$5.00") {
+		t.Errorf("Cost at warning: expected '$5.00' in output, got %q", gotWarn.Text)
 	}
 }
 
@@ -1631,11 +1631,11 @@ func TestCostWidget_AtCriticalThresholdUsesCriticalColor(t *testing.T) {
 	gotCrit := Cost(ctxCrit, cfg)
 	gotWarn := Cost(ctxWarn, cfg)
 
-	if gotCrit == gotWarn {
+	if gotCrit.Text == gotWarn.Text {
 		t.Errorf("Cost at critical: expected different styling from warning")
 	}
-	if !strings.Contains(gotCrit, "$10.00") {
-		t.Errorf("Cost at critical: expected '$10.00' in output, got %q", gotCrit)
+	if !strings.Contains(gotCrit.Text, "$10.00") {
+		t.Errorf("Cost at critical: expected '$10.00' in output, got %q", gotCrit.Text)
 	}
 }
 
@@ -1648,8 +1648,8 @@ func TestCostWidget_AboveCriticalUsesCriticalColor(t *testing.T) {
 	got10 := Cost(ctx10, cfg)
 
 	// Both should use critical color; strip dollar amounts and compare ANSI structure.
-	ansi15 := strings.Replace(got15, "15.00", "XX.XX", 1)
-	ansi10 := strings.Replace(got10, "10.00", "XX.XX", 1)
+	ansi15 := strings.Replace(got15.Text, "15.00", "XX.XX", 1)
+	ansi10 := strings.Replace(got10.Text, "10.00", "XX.XX", 1)
 	if ansi15 != ansi10 {
 		t.Errorf("Cost above critical: expected same ANSI structure as at-critical, got %q vs %q", ansi15, ansi10)
 	}
@@ -1669,14 +1669,14 @@ func TestCostWidget_CustomThresholds(t *testing.T) {
 	gotWarn := Cost(ctxWarn, cfg)
 	gotCrit := Cost(ctxCrit, cfg)
 
-	if gotNorm == gotWarn {
+	if gotNorm.Text == gotWarn.Text {
 		t.Errorf("custom thresholds: normal and warning should differ")
 	}
-	if gotWarn == gotCrit {
+	if gotWarn.Text == gotCrit.Text {
 		t.Errorf("custom thresholds: warning and critical should differ")
 	}
-	if !strings.Contains(gotCrit, "$4.00") {
-		t.Errorf("custom critical: expected '$4.00', got %q", gotCrit)
+	if !strings.Contains(gotCrit.Text, "$4.00") {
+		t.Errorf("custom critical: expected '$4.00', got %q", gotCrit.Text)
 	}
 }
 
@@ -1709,8 +1709,8 @@ func TestSessionWidget_NilTranscriptReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: nil}
 	cfg := defaultCfg()
 
-	if got := Session(ctx, cfg); got != "" {
-		t.Errorf("Session with nil Transcript: expected empty, got %q", got)
+	if got := Session(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Session with nil Transcript: expected empty, got %q", got.Text)
 	}
 }
 
@@ -1718,8 +1718,8 @@ func TestSessionWidget_EmptySessionNameReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: &model.TranscriptData{SessionName: ""}}
 	cfg := defaultCfg()
 
-	if got := Session(ctx, cfg); got != "" {
-		t.Errorf("Session with empty SessionName: expected empty, got %q", got)
+	if got := Session(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Session with empty SessionName: expected empty, got %q", got.Text)
 	}
 }
 
@@ -1727,7 +1727,7 @@ func TestSessionWidget_RendersSessionName(t *testing.T) {
 	ctx := &model.RenderContext{Transcript: &model.TranscriptData{SessionName: "my-feature-branch"}}
 	cfg := defaultCfg()
 
-	got := Session(ctx, cfg)
+	got := Session(ctx, cfg).Text
 	if !strings.Contains(got, "my-feature-branch") {
 		t.Errorf("Session: expected 'my-feature-branch' in output, got %q", got)
 	}
@@ -1836,7 +1836,7 @@ func TestDurationWidget_PrefersStdinDuration(t *testing.T) {
 	}
 	cfg := defaultCfg()
 
-	got := Duration(ctx, cfg)
+	got := Duration(ctx, cfg).Text
 	// 185 000 ms rounds to 3m 5s — check both components.
 	if !strings.Contains(got, "3m") {
 		t.Errorf("Duration with TotalDurationMs=185000: expected '3m', got %q", got)
@@ -1858,14 +1858,14 @@ func TestDurationWidget_FallsBackToSessionStartWhenNoDuration(t *testing.T) {
 	}
 	cfg := defaultCfg()
 
-	got := Duration(ctx, cfg)
+	got := Duration(ctx, cfg).Text
 	// Should show minutes (≈5m).
 	if !strings.Contains(got, "m") {
 		t.Errorf("Duration fallback to SessionStart: expected 'm' in output, got %q", got)
 	}
 }
 
-// When both TotalDurationMs and SessionStart are absent, the widget returns "".
+// When both TotalDurationMs and SessionStart are absent, the widget returns empty.
 func TestDurationWidget_NeitherSourceReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{
 		TotalDurationMs: 0,
@@ -1873,8 +1873,50 @@ func TestDurationWidget_NeitherSourceReturnsEmpty(t *testing.T) {
 	}
 	cfg := defaultCfg()
 
-	if got := Duration(ctx, cfg); got != "" {
-		t.Errorf("Duration with no data: expected empty, got %q", got)
+	if got := Duration(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Duration with no data: expected empty, got %q", got.Text)
+	}
+}
+
+// -- WidgetResult -------------------------------------------------------------
+
+// TestWidgetResult_IsEmpty verifies the IsEmpty helper.
+func TestWidgetResult_IsEmpty(t *testing.T) {
+	if !(WidgetResult{}).IsEmpty() {
+		t.Error("zero-value WidgetResult should be empty")
+	}
+	if (WidgetResult{Text: "x"}).IsEmpty() {
+		t.Error("WidgetResult with Text should not be empty")
+	}
+	// FgColor alone does not make a result non-empty.
+	if !(WidgetResult{FgColor: "42"}).IsEmpty() {
+		t.Error("WidgetResult with only FgColor should still be empty")
+	}
+}
+
+// TestWidgetResult_PlainModeOutputIdentical verifies that simple widgets expose
+// the correct Text and FgColor for the renderer to apply. This is the
+// behavioral-equivalence check required by spec 5: when the renderer applies
+// FgColor to Text, the output must match what the old envStyle.Render produced.
+func TestWidgetResult_PlainModeOutputIdentical(t *testing.T) {
+	// Env widget uses FgColor="245" — the renderer applies that color.
+	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{MCPServers: 3, Hooks: 2}}
+	cfg := defaultCfg()
+
+	result := Env(ctx, cfg)
+	if result.FgColor != "245" {
+		t.Errorf("Env FgColor: expected '245', got %q", result.FgColor)
+	}
+	if result.Text != "3M 2H" {
+		t.Errorf("Env Text: expected '3M 2H', got %q", result.Text)
+	}
+
+	// Verify that applying FgColor to Text produces the same output as envStyle directly.
+	want := envStyle.Render("3M 2H")
+	style := lipgloss.NewStyle().Foreground(lipgloss.Color(result.FgColor))
+	got := style.Render(result.Text)
+	if got != want {
+		t.Errorf("renderer-equivalent output: expected %q, got %q", want, got)
 	}
 }
 

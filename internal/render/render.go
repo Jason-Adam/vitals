@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/logging"
@@ -52,9 +53,12 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 				logging.Debug("render: unknown widget %q, skipping", name)
 				continue
 			}
-			if s := fn(ctx, cfg); s != "" {
-				parts = append(parts, s)
+			result := fn(ctx, cfg)
+			if result.IsEmpty() {
+				continue
 			}
+			s := applyWidgetStyle(result)
+			parts = append(parts, s)
 		}
 		if len(parts) == 0 {
 			continue // skip lines where every widget returned empty
@@ -74,4 +78,20 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 		outLine := strings.ReplaceAll(ansiReset+output, " ", "\u00a0")
 		fmt.Fprintln(w, outLine)
 	}
+}
+
+// applyWidgetStyle converts a WidgetResult to a styled string.
+//
+// When FgColor is empty the Text is returned as-is (the widget pre-styled it
+// internally). When FgColor is set, a fresh lipgloss.Style is built from
+// FgColor (and optionally BgColor) and applied to Text.
+func applyWidgetStyle(r widget.WidgetResult) string {
+	if r.FgColor == "" {
+		return r.Text
+	}
+	style := lipgloss.NewStyle().Foreground(lipgloss.Color(r.FgColor))
+	if r.BgColor != "" {
+		style = style.Background(lipgloss.Color(r.BgColor))
+	}
+	return style.Render(r.Text)
 }

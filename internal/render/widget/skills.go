@@ -11,11 +11,13 @@ import (
 // Skills are extracted from "Skill" tool_use blocks in the transcript.
 //
 // The widget shows a comma-separated list of unique skill names seen so far,
-// newest-first. Returns "" when ctx.Transcript is nil or no skills have been
-// invoked.
-func Skills(ctx *model.RenderContext, cfg *config.Config) string {
+// newest-first. Returns an empty WidgetResult when ctx.Transcript is nil or no skills
+// have been invoked.
+// FgColor is left empty because dimStyle uses faint rather than a foreground color;
+// the renderer passes the pre-styled Text through as-is.
+func Skills(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Transcript == nil || len(ctx.Transcript.SkillNames) == 0 {
-		return ""
+		return WidgetResult{}
 	}
 
 	// Deduplicate while preserving most-recent-first order. Walk the slice
@@ -32,5 +34,5 @@ func Skills(ctx *model.RenderContext, cfg *config.Config) string {
 	}
 
 	list := strings.Join(unique, ", ")
-	return dimStyle.Render(list)
+	return WidgetResult{Text: dimStyle.Render(list)}
 }

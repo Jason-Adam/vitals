@@ -77,10 +77,12 @@ func renderBar(pct, width int) string {
 // When context exceeds the critical threshold and cfg.Context.ShowBreakdown is
 // true, a token breakdown is appended: " in:84k cr:12k rd:8k".
 //
-// Returns "" when both ContextPercent and ContextWindowSize are zero.
-func Context(ctx *model.RenderContext, cfg *config.Config) string {
+// Returns an empty WidgetResult when both ContextPercent and ContextWindowSize are zero.
+// FgColor is left empty because the widget composes multiple styles internally;
+// the renderer passes the pre-styled Text through as-is.
+func Context(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.ContextPercent == 0 && ctx.ContextWindowSize == 0 {
-		return ""
+		return WidgetResult{}
 	}
 
 	barWidth := cfg.Context.BarWidth
@@ -124,15 +126,15 @@ func Context(ctx *model.RenderContext, cfg *config.Config) string {
 	}
 
 	// Assemble the output according to the display mode.
-	var result string
+	var text string
 	switch cfg.Context.Display {
 	case "bar":
-		result = activeStyle.Render(renderBar(pct, barWidth))
+		text = activeStyle.Render(renderBar(pct, barWidth))
 	case "both":
 		bar := activeStyle.Render(renderBar(pct, barWidth))
-		result = bar + " " + activeStyle.Render(label)
+		text = bar + " " + activeStyle.Render(label)
 	default: // "text" or empty
-		result = activeStyle.Render(label)
+		text = activeStyle.Render(label)
 	}
 
 	// Prepend a circle-slice Nerd Font icon that fills proportionally with usage.
@@ -147,10 +149,10 @@ func Context(ctx *model.RenderContext, cfg *config.Config) string {
 			formatTokenCount(ctx.CacheCreation),
 			formatTokenCount(ctx.CacheRead),
 		)
-		result += dimStyle.Render(breakdown)
+		text += dimStyle.Render(breakdown)
 	}
 
-	return result
+	return WidgetResult{Text: text}
 }
 
 // formatTokenCount formats a token count into a compact human-readable string:

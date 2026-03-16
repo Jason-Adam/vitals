@@ -11,8 +11,8 @@ func TestCostWidget_ZeroCostReturnsEmpty(t *testing.T) {
 	ctx := &model.RenderContext{SessionCostUSD: 0}
 	cfg := defaultCfg()
 
-	if got := Cost(ctx, cfg); got != "" {
-		t.Errorf("Cost with zero: expected empty string, got %q", got)
+	if got := Cost(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Cost with zero: expected empty, got %q", got.Text)
 	}
 }
 
@@ -20,7 +20,7 @@ func TestCostWidget_SubDollar(t *testing.T) {
 	ctx := &model.RenderContext{SessionCostUSD: 0.42}
 	cfg := defaultCfg()
 
-	got := Cost(ctx, cfg)
+	got := Cost(ctx, cfg).Text
 	if !strings.Contains(got, "$0.42") {
 		t.Errorf("Cost sub-dollar: expected '$0.42' in output, got %q", got)
 	}
@@ -30,7 +30,7 @@ func TestCostWidget_MultiDollar(t *testing.T) {
 	ctx := &model.RenderContext{SessionCostUSD: 1.23}
 	cfg := defaultCfg()
 
-	got := Cost(ctx, cfg)
+	got := Cost(ctx, cfg).Text
 	if !strings.Contains(got, "$1.23") {
 		t.Errorf("Cost multi-dollar: expected '$1.23' in output, got %q", got)
 	}
@@ -40,7 +40,7 @@ func TestCostWidget_LargerAmount(t *testing.T) {
 	ctx := &model.RenderContext{SessionCostUSD: 12.50}
 	cfg := defaultCfg()
 
-	got := Cost(ctx, cfg)
+	got := Cost(ctx, cfg).Text
 	if !strings.Contains(got, "$12.50") {
 		t.Errorf("Cost larger: expected '$12.50' in output, got %q", got)
 	}
@@ -53,8 +53,8 @@ func TestCostWidget_NilCostEquivalent(t *testing.T) {
 	ctx := &model.RenderContext{}
 	cfg := defaultCfg()
 
-	if got := Cost(ctx, cfg); got != "" {
-		t.Errorf("Cost with default (unavailable) context: expected empty string, got %q", got)
+	if got := Cost(ctx, cfg); !got.IsEmpty() {
+		t.Errorf("Cost with default (unavailable) context: expected empty, got %q", got.Text)
 	}
 }
 
