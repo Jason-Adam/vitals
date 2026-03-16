@@ -584,11 +584,6 @@ func (es *ExtractionState) MarshalSnapshot() (json.RawMessage, error) {
 	todos := make([]model.TodoItem, len(es.Todos))
 	copy(todos, es.Todos)
 
-	// Save toolCountAtRestore (not the current tool count) as the boundary.
-	// This advances the boundary to the restore-point so the next invocation
-	// sees tools added since the previous restore as "fresh". Without this,
-	// every save would reset the boundary to len(displayTools), making freshCount
-	// always 0 or 1 and the colored separator never stable.
 	snap := extractionSnapshot{
 		Tools:             tools,
 		Agents:            agents,
@@ -597,7 +592,7 @@ func (es *ExtractionState) MarshalSnapshot() (json.RawMessage, error) {
 		ThinkingActive:    es.thinkingActive,
 		ThinkingCount:     es.thinkingCount,
 		SpinnerFrame:      es.spinnerFrame,
-		LastSeenToolCount: es.toolCountAtRestore,
+		LastSeenToolCount: es.lastSeenToolCountForSave(),
 	}
 	return json.Marshal(snap)
 }
@@ -680,6 +675,27 @@ func (es *ExtractionState) UnmarshalSnapshot(data json.RawMessage) error {
 	// correctly on each save (see toolCountAtRestore comment in the struct).
 	es.toolCountAtRestore = len(es.displayTools)
 	return nil
+}
+
+// lastSeenToolCountForSave returns the LastSeenToolCount value to persist in
+// the snapshot. The rule: only advance the boundary when new tools actually
+// arrived this invocation. If no new tools were added, preserve the previous
+// boundary so the colored separator stays visible across renders.
+//
+// Without this, every save resets the boundary to toolCountAtRestore, which
+// means a separator visible in invocation N disappears in invocation N+1
+// (after a no-new-tool render) because lastSeenToolCount catches up to
+// toolCountAtRestore and freshCount drops to zero.
+func (es *ExtractionState) lastSeenToolCountForSave() int {
+	if len(es.displayTools) > es.toolCountAtRestore {
+		// New tools arrived this invocation: advance the boundary to the
+		// restore-point. The next invocation will treat tools added since the
+		// restore as "fresh".
+		return es.toolCountAtRestore
+	}
+	// No new tools: keep the previous boundary unchanged so the separator
+	// persists until something actually changes.
+	return es.lastSeenToolCount
 }
 
 // agentDescriptionMaxLen is the maximum number of runes kept from a description
