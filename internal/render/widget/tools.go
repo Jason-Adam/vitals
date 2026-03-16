@@ -87,12 +87,17 @@ func renderToolEntry(icons Icons, t model.ToolEntry) string {
 
 // formatDuration converts a millisecond duration into a compact human-readable string.
 //
-//   - < 1000ms:           "0.Xs"  (tenths of a second)
-//   - 1000ms – 59999ms:   "Xs" or "X.Ys" (seconds, optional tenth)
-//   - >= 60000ms:          "Xm Ys"
+//   - <= 0ms:             "0.0s"  (genuinely instant or unknown)
+//   - 1ms – 99ms:        "<0.1s" (sub-100ms; avoids misleading "0.0s" for real durations)
+//   - 100ms – 999ms:     "0.Xs"  (tenths of a second)
+//   - 1000ms – 59999ms:  "Xs" or "X.Ys" (seconds, optional tenth)
+//   - >= 60000ms:         "Xm Ys"
 func formatDuration(ms int) string {
 	if ms <= 0 {
 		return "0.0s"
+	}
+	if ms < 100 {
+		return "<0.1s"
 	}
 	if ms < 1000 {
 		return fmt.Sprintf("0.%ds", ms/100)

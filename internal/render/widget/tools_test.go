@@ -45,6 +45,26 @@ func containsInOrder(output string, want []string) bool {
 	return true
 }
 
+// TestFormatDuration_RenderedInCompletedTool verifies that a completed tool
+// with a sub-100ms duration (e.g. 50ms) renders "<0.1s" in the output
+// rather than the misleading "0.0s".
+func TestFormatDuration_RenderedInCompletedTool(t *testing.T) {
+	tools := []model.ToolEntry{
+		{Name: "Grep", Count: 1, DurationMs: 50, Category: "search"},
+	}
+	ctx := toolsCtx(tools)
+	cfg := defaultCfg()
+
+	got := Tools(ctx, cfg)
+
+	if !strings.Contains(got, "<0.1s") {
+		t.Errorf("expected '<0.1s' for 50ms duration, got %q", got)
+	}
+	if strings.Contains(got, "0.0s") {
+		t.Errorf("got misleading '0.0s' for 50ms duration in %q", got)
+	}
+}
+
 // Spec 1: 3 running + 4 completed → running tools shown first, then newest completed.
 //
 // The Tools slice is oldest-first.  Running tools (Count==0) appear before
