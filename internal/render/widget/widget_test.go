@@ -1994,8 +1994,8 @@ func TestContextWidget_NerdfontIconPrepended(t *testing.T) {
 	got := Context(ctx, cfg)
 	// The 50% icon is circle_slice_5 (U+F0AA2).
 	wantIcon := "\U000F0AA2"
-	if !strings.Contains(got, wantIcon) {
-		t.Errorf("Context(nerdfont, 50%%): expected circle-slice icon %q in output, got %q", wantIcon, got)
+	if !strings.Contains(got.Text, wantIcon) {
+		t.Errorf("Context(nerdfont, 50%%): expected circle-slice icon %q in output, got %q", wantIcon, got.Text)
 	}
 }
 
@@ -2009,8 +2009,8 @@ func TestContextWidget_NoIconWithoutNerdfont(t *testing.T) {
 	// None of the circle-slice icons should appear.
 	for _, icon := range []string{"\U000F0A9E", "\U000F0A9F", "\U000F0AA0", "\U000F0AA1",
 		"\U000F0AA2", "\U000F0AA3", "\U000F0AA4", "\U000F0AA5"} {
-		if strings.Contains(got, icon) {
-			t.Errorf("Context(ascii): unexpected circle-slice icon in output %q", got)
+		if strings.Contains(got.Text, icon) {
+			t.Errorf("Context(ascii): unexpected circle-slice icon in output %q", got.Text)
 		}
 	}
 }
