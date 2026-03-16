@@ -673,6 +673,69 @@ func TestIconsFor_Modes(t *testing.T) {
 
 // -- normalizeModelName -------------------------------------------------------
 
+func TestModelWidget_DisplayNameAlreadyHasContext(t *testing.T) {
+	// Claude Code sends display_name as "Opus 4.6 (1M context)".
+	// normalizeModelName strips the parenthesized suffix, then Model
+	// re-adds it in a controlled format — exactly once.
+	ctx := &model.RenderContext{
+		ModelDisplayName:  "Opus 4.6 (1M context)",
+		ContextWindowSize: 1000000,
+	}
+	cfg := defaultCfg()
+	cfg.Model.ShowContextSize = true
+
+	got := Model(ctx, cfg)
+	if count := strings.Count(got, "context"); count != 1 {
+		t.Errorf("expected 'context' once, found %d times in %q", count, got)
+	}
+	if !strings.Contains(got, "Opus 4.6") {
+		t.Errorf("expected 'Opus 4.6' in output, got %q", got)
+	}
+}
+
+func TestNormalizeModelName_StripsParenSuffix(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"Opus 4.6 (1M context)", "Opus 4.6"},
+		{"Sonnet 4 (200k context)", "Sonnet 4"},
+		{"Claude Haiku 4 (beta)", "Claude Haiku 4"},
+		{"plain-name", "plain-name"},
+	}
+	for _, tt := range tests {
+		got := normalizeModelName(tt.input)
+		if got != tt.want {
+			t.Errorf("normalizeModelName(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestNormalizeModelName_BracketSuffix(t *testing.T) {
+	// Model IDs with bracket annotations like "[1m]" should be stripped.
+	got := normalizeModelName("claude-opus-4-6[1m]")
+	want := "Claude Opus 4.6"
+	if got != want {
+		t.Errorf("normalizeModelName(%q) = %q, want %q", "claude-opus-4-6[1m]", got, want)
+	}
+}
+
+func TestNormalizeModelName_4_6_Models(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"claude-opus-4-6", "Claude Opus 4.6"},
+		{"claude-sonnet-4-6", "Claude Sonnet 4.6"},
+	}
+	for _, tt := range tests {
+		got := normalizeModelName(tt.input)
+		if got != tt.want {
+			t.Errorf("normalizeModelName(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
 func TestNormalizeModelName_BedrockFullID(t *testing.T) {
 	// Full Bedrock ID: anthropic prefix + date suffix + version suffix.
 	got := normalizeModelName("anthropic.claude-sonnet-4-20250514-v1:0")
