@@ -26,6 +26,7 @@ var transcriptWidgets = map[string]bool{
 	"agents":   true,
 	"todos":    true,
 	"thinking": true,
+	"session":  true,
 }
 
 // Gather builds a RenderContext by collecting data in parallel for each data
@@ -119,7 +120,7 @@ func needsTranscript(active map[string]bool) bool {
 // restore snapshot → incremental read → parse → extract → save snapshot → return TranscriptData.
 // Returns nil on any error so callers treat missing data gracefully.
 func gatherTranscript(path string) *model.TranscriptData {
-	sm := transcript.NewStateManager(transcriptStateDir())
+	sm := transcript.NewStateManager(model.PluginDir())
 	lines, err := sm.ReadIncremental(path)
 	if err != nil {
 		return nil
@@ -388,12 +389,3 @@ func mergeSubagents(td *model.TranscriptData, fsAgents []model.AgentEntry) {
 	}
 }
 
-// transcriptStateDir returns the directory used for incremental-read state files.
-// Follows the same convention as the plugin directory: ~/.claude/plugins/tail-claude-hud/
-func transcriptStateDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return os.TempDir()
-	}
-	return filepath.Join(home, ".claude", "plugins", "tail-claude-hud")
-}
