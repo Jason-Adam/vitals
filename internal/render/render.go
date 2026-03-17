@@ -13,6 +13,7 @@ import (
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/logging"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/render/widget"
+	"github.com/kylesnowschwartz/tail-claude-hud/internal/theme"
 )
 
 // truncateSuffix is appended when a line is truncated to fit terminal width.
@@ -37,99 +38,112 @@ const (
 	// powerlineStartCap is U+E0B2 — the left-pointing filled triangle rendered
 	// before the first segment as an opening cap.
 	powerlineStartCap = "\ue0b2"
-
 )
 
-// defaultPowerlineBg is the fallback xterm-256 background color (dark gray)
-// used when a widget does not declare its own BgColor.
-const defaultPowerlineBg = "236"
-
-// ansiSetFg returns the ANSI escape sequence to set the foreground to a
-// xterm-256 color code (e.g. "75"). Returns "" for empty input.
-func ansiSetFg(color string) string {
-	if color == "" {
-		return ""
-	}
-	return "\x1b[38;5;" + color + "m"
-}
-
-// ansiSetBg returns the ANSI escape sequence to set the background to a
-// xterm-256 color code. Returns "" for empty input.
-func ansiSetBg(color string) string {
-	if color == "" {
-		return ""
-	}
-	return "\x1b[48;5;" + color + "m"
-}
-
-// effectiveBg returns r.BgColor when set, otherwise the default powerline bg.
-func effectiveBg(r widget.WidgetResult) string {
+// resolveSegmentBg returns the effective background color for a widget segment,
+// reading in priority order:
+//  1. r.BgColor (widget-level explicit override from the WidgetResult)
+//  2. cfg.ResolvedTheme[widgetName].Bg (per-widget theme entry)
+//  3. theme.DefaultPowerlineBg (last-resort fallback, xterm-256 color 236)
+func resolveSegmentBg(r widget.WidgetResult, widgetName string, cfg *config.Config) string {
 	if r.BgColor != "" {
 		return r.BgColor
 	}
-	return defaultPowerlineBg
-}
-
-// renderPowerline formats a slice of WidgetResults as a powerline-style line:
-//
-//   - Empty results (Text == "") are skipped.
-//   - The first segment is preceded by a start cap (U+E0B2) whose color
-//     matches the first segment's background.
-//   - Adjacent segments are separated by a right-arrow (U+E0B0) whose fg is
-//     the left segment's bg and whose bg is the right segment's bg.
-//   - The last segment is followed by a reset and a closing arrow in the last
-//     segment's background color (so the arrow "ends" the bar).
-//
-// When results is empty the function returns "".
-func renderPowerline(results []widget.WidgetResult) string {
-	// Filter empty segments first.
-	var segs []widget.WidgetResult
-	for _, r := range results {
-		if !r.IsEmpty() {
-			segs = append(segs, r)
+	if cfg.ResolvedTheme != nil {
+		if colors, ok := cfg.ResolvedTheme[widgetName]; ok && colors.Bg != "" {
+			return colors.Bg
 		}
 	}
+	return theme.DefaultPowerlineBg
+}
+
+// resolveSegmentFg returns the effective foreground color for a widget segment:
+//  1. r.FgColor (widget-level explicit fg)
+//  2. cfg.ResolvedTheme[widgetName].Fg (theme fg)
+//  3. "" (no explicit fg; let lipgloss use terminal default)
+func resolveSegmentFg(r widget.WidgetResult, widgetName string, cfg *config.Config) string {
+	if r.FgColor != "" {
+		return r.FgColor
+	}
+	if cfg.ResolvedTheme != nil {
+		if colors, ok := cfg.ResolvedTheme[widgetName]; ok && colors.Fg != "" {
+			return colors.Fg
+		}
+	}
+	return ""
+}
+
+// renderPowerline formats a slice of (name, WidgetResult) pairs as a
+// powerline-style line:
+//
+//   - Empty results (IsEmpty()) are skipped.
+//   - The first segment is preceded by a start cap (U+E0B2) whose fg matches
+//     the first segment's background, against the terminal default bg.
+//   - Adjacent segments are separated by a right-arrow (U+E0B0) whose fg is
+//     the left segment's bg and whose bg is the right segment's bg.
+//   - The last segment is followed by a closing arrow whose fg is the last
+//     segment's bg and bg is reset to terminal default.
+//
+// Each segment's bg is resolved via resolveSegmentBg (widget result > theme >
+// fallback), so every widget can have a visually distinct background.
+//
+// When results is empty the function returns "".
+func renderPowerline(results []widget.WidgetResult, names []string, cfg *config.Config) string {
+	// Pair non-empty results with their widget names.
+	type seg struct {
+		name   string
+		result widget.WidgetResult
+		bg     string
+		fg     string
+	}
+
+	var segs []seg
+	for i, r := range results {
+		if r.IsEmpty() {
+			continue
+		}
+		name := names[i]
+		segs = append(segs, seg{
+			name:   name,
+			result: r,
+			bg:     resolveSegmentBg(r, name, cfg),
+			fg:     resolveSegmentFg(r, name, cfg),
+		})
+	}
+
 	if len(segs) == 0 {
 		return ""
 	}
 
 	var sb strings.Builder
 
-	// Start cap: rendered with the first segment's bg as fg, default terminal bg.
-	firstBg := effectiveBg(segs[0])
-	sb.WriteString(ansiReset)
-	sb.WriteString(ansiSetFg(firstBg))
-	sb.WriteString(powerlineStartCap)
+	// Start cap: fg=first-segment-bg, no bg (terminal default).
+	firstBg := segs[0].bg
+	startCapStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(firstBg))
+	sb.WriteString(startCapStyle.Render(powerlineStartCap))
 
-	for i, seg := range segs {
-		bg := effectiveBg(seg)
-
-		// Segment content: bg color, then fg color (if any), then padded text.
-		sb.WriteString(ansiSetBg(bg))
-		if seg.FgColor != "" {
-			sb.WriteString(ansiSetFg(seg.FgColor))
-		} else {
-			// No explicit fg; reset fg so it uses the terminal default on this bg.
-			sb.WriteString("\x1b[39m")
+	for i, s := range segs {
+		// Segment content: bg color, fg color (if known), padded text.
+		segStyle := lipgloss.NewStyle().Background(lipgloss.Color(s.bg))
+		if s.fg != "" {
+			segStyle = segStyle.Foreground(lipgloss.Color(s.fg))
 		}
-		sb.WriteString(" ")
-		sb.WriteString(seg.Text)
-		sb.WriteString(" ")
+		// When the widget pre-styled its own Text (FgColor==""), we wrap with
+		// bg only; when FgColor is set, we re-apply fg here too.
+		sb.WriteString(segStyle.Render(" " + s.result.Text + " "))
 
-		// Arrow transition (or end cap after the last segment).
-		if i < len(segs)-1 {
-			nextBg := effectiveBg(segs[i+1])
-			// Arrow: fg = current bg, bg = next segment's bg.
-			sb.WriteString(ansiReset)
-			sb.WriteString(ansiSetBg(nextBg))
-			sb.WriteString(ansiSetFg(bg))
-			sb.WriteString(powerlineArrow)
+		// Arrow after this segment.
+		if i+1 < len(segs) {
+			// Transition arrow: fg=this-bg, bg=next-bg.
+			nextBg := segs[i+1].bg
+			arrowStyle := lipgloss.NewStyle().
+				Foreground(lipgloss.Color(s.bg)).
+				Background(lipgloss.Color(nextBg))
+			sb.WriteString(arrowStyle.Render(powerlineArrow))
 		} else {
-			// End cap: reset to default bg, fg = last segment's bg.
-			sb.WriteString(ansiReset)
-			sb.WriteString(ansiSetFg(bg))
-			sb.WriteString(powerlineArrow)
-			sb.WriteString(ansiReset)
+			// End cap: fg=this-bg, no bg (terminal default).
+			endCapStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(s.bg))
+			sb.WriteString(endCapStyle.Render(powerlineArrow))
 		}
 	}
 
@@ -146,11 +160,10 @@ func renderMinimal(results []widget.WidgetResult, line config.Line, cfg *config.
 		if r.IsEmpty() {
 			continue
 		}
-		// Apply fg color only; ignore any bg from theme or widget result.
-		// When FgColor is empty the widget pre-styled its own text with internal
-		// ANSI codes — pass it through as-is to avoid double-wrapping escape
-		// sequences. Only apply theme fg when FgColor is explicitly set (structured
-		// output where the widget deferred color responsibility to the renderer).
+		// Apply fg color only when the widget explicitly set FgColor; ignore
+		// any bg from theme or widget result. When FgColor is empty the widget
+		// pre-styled its own text with internal ANSI codes — pass it through
+		// as-is to avoid double-wrapping escape sequences.
 		var text string
 		if r.FgColor != "" {
 			text = lipgloss.NewStyle().Foreground(lipgloss.Color(r.FgColor)).Render(r.Text)
@@ -205,6 +218,7 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 		mode := lineMode(line, globalMode)
 
 		var results []widget.WidgetResult
+		var names []string
 		for _, name := range line.Widgets {
 			fn, ok := widget.Registry[name]
 			if !ok {
@@ -212,12 +226,13 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 				continue
 			}
 			results = append(results, fn(ctx, cfg))
+			names = append(names, name)
 		}
 
 		var output string
 		switch mode {
 		case "powerline":
-			output = renderPowerline(results)
+			output = renderPowerline(results, names, cfg)
 		case "minimal":
 			output = renderMinimal(results, line, cfg)
 		default: // "plain" or any unknown value
@@ -227,8 +242,7 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 				if r.IsEmpty() {
 					continue
 				}
-				name := line.Widgets[i]
-				parts = append(parts, applyWidgetStyle(r, name, cfg))
+				parts = append(parts, applyWidgetStyle(r, names[i], cfg))
 			}
 			if len(parts) == 0 {
 				continue

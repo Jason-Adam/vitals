@@ -18,6 +18,10 @@ type WidgetColors struct {
 // Theme maps widget names to their colors.
 type Theme map[string]WidgetColors
 
+// DefaultPowerlineBg is the fallback xterm-256 background color (dark gray)
+// used when a widget does not declare its own bg color in the active theme.
+const DefaultPowerlineBg = "236"
+
 // builtins is the registry of built-in named themes. The key is the theme name
 // as it appears in the config file (e.g. theme = "nord").
 var builtins = map[string]Theme{
@@ -45,23 +49,26 @@ var defaultTheme = Theme{
 	"todos":     {Fg: "220", Bg: ""},
 	"session":   {Fg: "87", Bg: ""},
 	"thinking":  {Fg: "220", Bg: ""},
+	"cost":      {Fg: "87", Bg: ""},
 }
 
 // darkTheme is a high-contrast dark terminal palette derived from claude-powerline's
-// dark theme, adjusted to ANSI 256-color indices for broad terminal compatibility.
+// dark theme. Each widget in the powerline layout gets a DISTINCT background
+// color so arrow transitions between segments are visible.
 var darkTheme = Theme{
 	"model":     {Fg: "#ffffff", Bg: "#2d2d2d"},
 	"context":   {Fg: "#cbd5e0", Bg: "#4a5568"},
 	"directory": {Fg: "#ffffff", Bg: "#8b4513"},
 	"git":       {Fg: "#ffffff", Bg: "#404040"},
-	"project":   {Fg: "#87ceeb", Bg: "#2a2a2a"},
+	"project":   {Fg: "#ffffff", Bg: "#8b4513"}, // warm brown, matches reference
 	"env":       {Fg: "#d0a0d0", Bg: "#2d2d3d"},
 	"duration":  {Fg: "#d1d5db", Bg: "#374151"},
 	"tools":     {Fg: "#87ceeb", Bg: "#2a2a2a"},
-	"agents":    {Fg: "#87ceeb", Bg: "#2a2a2a"},
+	"agents":    {Fg: "#87ceeb", Bg: "#2f4f2f"},
 	"todos":     {Fg: "#98fb98", Bg: "#1a1a1a"},
-	"session":   {Fg: "#00ffff", Bg: "#202020"},
+	"session":   {Fg: "#00ffff", Bg: "#3a3a4a"},
 	"thinking":  {Fg: "#87ceeb", Bg: "#2a2a2a"},
+	"cost":      {Fg: "#00ffff", Bg: "#202020"},
 }
 
 // nordTheme uses the Nord color palette (https://www.nordtheme.com/).
@@ -79,6 +86,7 @@ var nordTheme = Theme{
 	"todos":     {Fg: "#8fbcbb", Bg: "#2e3440"},
 	"session":   {Fg: "#88c0d0", Bg: "#2e3440"},
 	"thinking":  {Fg: "#81a1c1", Bg: "#3b4252"},
+	"cost":      {Fg: "#b48ead", Bg: "#2e3440"},
 }
 
 // gruvboxTheme uses the Gruvbox color palette (https://github.com/morhetz/gruvbox).
@@ -96,6 +104,7 @@ var gruvboxTheme = Theme{
 	"todos":     {Fg: "#fabd2f", Bg: "#282828"},
 	"session":   {Fg: "#8ec07c", Bg: "#282828"},
 	"thinking":  {Fg: "#83a598", Bg: "#3c3836"},
+	"cost":      {Fg: "#fabd2f", Bg: "#282828"},
 }
 
 // tokyoNightTheme uses the Tokyo Night color palette
@@ -114,6 +123,7 @@ var tokyoNightTheme = Theme{
 	"todos":     {Fg: "#4fd6be", Bg: "#1a202c"},
 	"session":   {Fg: "#86e1fc", Bg: "#222436"},
 	"thinking":  {Fg: "#7aa2f7", Bg: "#2d3748"},
+	"cost":      {Fg: "#4fd6be", Bg: "#1a202c"},
 }
 
 // rosePineTheme uses the Rosé Pine color palette (https://rosepinetheme.com/).
@@ -131,6 +141,7 @@ var rosePineTheme = Theme{
 	"todos":     {Fg: "#9ccfd8", Bg: "#232136"},
 	"session":   {Fg: "#f6c177", Bg: "#26233a"},
 	"thinking":  {Fg: "#eb6f92", Bg: "#2a273f"},
+	"cost":      {Fg: "#9ccfd8", Bg: "#232136"},
 }
 
 // Load returns the named built-in theme. If the name is not recognized,

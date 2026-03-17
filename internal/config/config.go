@@ -135,19 +135,19 @@ func defaults() *Config {
 // and merging any custom [theme.overrides] on top of it. Called after the TOML
 // decode so that both built-in selection and user overrides are captured.
 func resolveTheme(cfg *Config) {
-	base := theme.Load(cfg.Style.Theme)
-	if len(cfg.Theme.Overrides) > 0 {
-		cfg.ResolvedTheme = theme.MergeOverrides(base, cfg.Theme.Overrides)
-	} else {
-		cfg.ResolvedTheme = base
-	}
+	ResolveTheme(cfg)
 }
 
 // ResolveTheme is the exported equivalent of resolveTheme, exposed so that
 // packages that hold a *Config (e.g. the preset package) can trigger a
 // palette refresh after mutating Style fields.
 func ResolveTheme(cfg *Config) {
-	resolveTheme(cfg)
+	base := theme.Load(cfg.Style.Theme)
+	if len(cfg.Theme.Overrides) > 0 {
+		cfg.ResolvedTheme = theme.MergeOverrides(base, cfg.Theme.Overrides)
+	} else {
+		cfg.ResolvedTheme = base
+	}
 }
 
 // configPath returns the first config file path that exists, checking XDG

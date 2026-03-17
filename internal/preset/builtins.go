@@ -45,11 +45,19 @@ var builtins = map[string]Preset{
 	"powerline": {
 		Name: "powerline",
 		Lines: []config.Line{
-			{Widgets: []string{"model", "context", "git", "cost", "duration"}},
+			// Line 1: identity bar with powerline-style arrow transitions between segments.
+			// Per-line mode overrides the global mode so line 2 can use plain mode.
+			{
+				Widgets: []string{"model", "context", "project", "cost", "duration"},
+				Mode:    "powerline",
+			},
+			// Line 2: activity feed in plain mode — powerline style is too
+			// heavy for rapidly-changing tool output.
+			{Widgets: []string{"tools"}},
 		},
-		Separator:      "",
+		Separator:      " | ",
 		Icons:          "nerdfont",
-		Mode:           "powerline",
+		Mode:           "plain", // default for lines without explicit mode
 		Theme:          "dark",
 		DirectoryStyle: "basename",
 	},

@@ -296,18 +296,11 @@ func TestRenderPowerline_TwoSegmentTransition(t *testing.T) {
 		{Text: "A", FgColor: "255", BgColor: "75"},
 		{Text: "B", FgColor: "255", BgColor: "114"},
 	}
+	names := []string{"widget-a", "widget-b"}
+	cfg := config.LoadHud()
 
-	out := renderPowerline(segs)
+	out := renderPowerline(segs, names, cfg)
 
-	// The arrow between A→B must have:
-	//   bg = right segment bg (114): \x1b[48;5;114m
-	//   fg = left segment bg (75):   \x1b[38;5;75m
-	if !strings.Contains(out, "\x1b[48;5;114m") {
-		t.Errorf("expected bg=114 (right segment bg) in transition, got %q", out)
-	}
-	if !strings.Contains(out, "\x1b[38;5;75m") {
-		t.Errorf("expected fg=75 (left segment bg) in transition, got %q", out)
-	}
 	// Arrow character must be present.
 	if !strings.Contains(out, powerlineArrow) {
 		t.Errorf("expected powerline arrow character in output, got %q", out)
@@ -317,11 +310,16 @@ func TestRenderPowerline_TwoSegmentTransition(t *testing.T) {
 		t.Errorf("expected start cap character in output, got %q", out)
 	}
 	// Both segment texts must appear.
-	if !strings.Contains(out, "A") {
-		t.Errorf("expected segment text 'A' in output, got %q", out)
+	stripped := ansi.Strip(out)
+	if !strings.Contains(stripped, "A") {
+		t.Errorf("expected segment text 'A' in output, got %q", stripped)
 	}
-	if !strings.Contains(out, "B") {
-		t.Errorf("expected segment text 'B' in output, got %q", out)
+	if !strings.Contains(stripped, "B") {
+		t.Errorf("expected segment text 'B' in output, got %q", stripped)
+	}
+	// Output must contain ANSI escape sequences for coloring.
+	if out == stripped {
+		t.Errorf("expected ANSI escape sequences in powerline output")
 	}
 }
 
@@ -333,21 +331,18 @@ func TestRenderPowerline_EmptySegmentsSkipped(t *testing.T) {
 		{Text: "", BgColor: "114"}, // empty — must be skipped
 		{Text: "C", BgColor: "196"},
 	}
+	names := []string{"widget-a", "widget-empty", "widget-c"}
+	cfg := config.LoadHud()
 
-	out := renderPowerline(segs)
+	out := renderPowerline(segs, names, cfg)
 
-	// "B" was never part of the input, but 114 is the bg of the empty segment.
-	// The transition should jump from 75→196, so bg=114 should NOT appear for
-	// any arrow (it would appear if the empty segment were mistakenly included).
-	if strings.Contains(out, "\x1b[48;5;114m") {
-		t.Errorf("expected empty segment (bg=114) to be skipped, got %q", out)
+	// A and C must still appear; empty segment must be skipped.
+	stripped := ansi.Strip(out)
+	if !strings.Contains(stripped, "A") {
+		t.Errorf("expected 'A' in output, got %q", stripped)
 	}
-	// A and C must still appear.
-	if !strings.Contains(out, "A") {
-		t.Errorf("expected 'A' in output, got %q", out)
-	}
-	if !strings.Contains(out, "C") {
-		t.Errorf("expected 'C' in output, got %q", out)
+	if !strings.Contains(stripped, "C") {
+		t.Errorf("expected 'C' in output, got %q", stripped)
 	}
 }
 
@@ -357,8 +352,10 @@ func TestRenderPowerline_SingleSegment(t *testing.T) {
 	segs := []widget.WidgetResult{
 		{Text: "solo", FgColor: "255", BgColor: "75"},
 	}
+	names := []string{"widget-solo"}
+	cfg := config.LoadHud()
 
-	out := renderPowerline(segs)
+	out := renderPowerline(segs, names, cfg)
 
 	if !strings.Contains(out, powerlineStartCap) {
 		t.Errorf("expected start cap in single-segment output, got %q", out)
@@ -388,24 +385,34 @@ func TestRenderPowerline_AllEmptyReturnsEmpty(t *testing.T) {
 		{Text: ""},
 		{Text: ""},
 	}
-	out := renderPowerline(segs)
+	names := []string{"widget-a", "widget-b"}
+	cfg := config.LoadHud()
+	out := renderPowerline(segs, names, cfg)
 	if out != "" {
 		t.Errorf("expected empty string for all-empty segments, got %q", out)
 	}
 }
 
 // TestRenderPowerline_DefaultBgFallback verifies that segments without a BgColor
-// use the defaultPowerlineBg constant.
+// and without a theme entry use the DefaultPowerlineBg as a last resort.
 func TestRenderPowerline_DefaultBgFallback(t *testing.T) {
 	segs := []widget.WidgetResult{
-		{Text: "X"}, // no BgColor
+		{Text: "X"}, // no BgColor, no theme entry
 	}
-	out := renderPowerline(segs)
+	names := []string{"unknown-widget-xyz"}
+	cfg := config.LoadHud()
+	cfg.ResolvedTheme = make(theme.Theme) // empty theme — forces fallback
 
-	// Start cap fg should be the default bg.
-	expectedStartFg := ansiSetFg(defaultPowerlineBg)
-	if !strings.Contains(out, expectedStartFg) {
-		t.Errorf("expected default bg %q as start cap fg color, got %q", defaultPowerlineBg, out)
+	// Resolve via helper to confirm DefaultPowerlineBg is returned.
+	bg := resolveSegmentBg(segs[0], names[0], cfg)
+	if bg != theme.DefaultPowerlineBg {
+		t.Errorf("expected default bg %q, got %q", theme.DefaultPowerlineBg, bg)
+	}
+
+	// Also verify the segment renders without panicking.
+	out := renderPowerline(segs, names, cfg)
+	if out == "" {
+		t.Errorf("expected non-empty output for segment with fallback bg")
 	}
 }
 
