@@ -468,14 +468,19 @@ func TestRender_PerLinePowerlineMode(t *testing.T) {
 	}
 }
 
-func TestRender_CapsuleMode(t *testing.T) {
+// TestRender_CapsuleModeFallsToPlain verifies that setting mode = "capsule"
+// falls through to plain mode (the default case) rather than producing an error
+// or empty output. Capsule mode was removed; existing configs using it should
+// still render correctly.
+func TestRender_CapsuleModeFallsToPlain(t *testing.T) {
 	ctx := &model.RenderContext{
 		ModelDisplayName:  "Opus",
 		ContextWindowSize: 200000,
 		ContextPercent:    42,
 	}
 	cfg := config.LoadHud()
-	cfg.Style.Mode = "capsule"
+	cfg.Style.Mode = "capsule" // unknown mode — falls through to plain
+	cfg.Style.Separator = " | "
 	cfg.Lines = []config.Line{
 		{Widgets: []string{"model", "context"}},
 	}
@@ -484,42 +489,17 @@ func TestRender_CapsuleMode(t *testing.T) {
 	Render(&buf, ctx, cfg)
 
 	out := buf.String()
-	// Capsule mode wraps each segment with rounded caps.
-	if !strings.Contains(out, capsuleLeft) {
-		t.Errorf("expected capsule left cap %q in output, got %q", capsuleLeft, out)
-	}
-	if !strings.Contains(out, capsuleRight) {
-		t.Errorf("expected capsule right cap %q in output, got %q", capsuleRight, out)
-	}
-	// Both widgets must appear in the output.
+	// Plain mode output must still contain both widget values.
 	if !strings.Contains(out, "Opus") {
-		t.Errorf("expected 'Opus' in capsule output, got %q", out)
+		t.Errorf("expected 'Opus' in plain fallback output, got %q", out)
 	}
 	if !strings.Contains(out, "42%") {
-		t.Errorf("expected '42%%' in capsule output, got %q", out)
+		t.Errorf("expected '42%%' in plain fallback output, got %q", out)
 	}
-}
-
-func TestRender_CapsuleMode_NoSeparator(t *testing.T) {
-	// Capsule mode must NOT use the configured separator.
-	ctx := &model.RenderContext{
-		ModelDisplayName:  "Opus",
-		ContextWindowSize: 200000,
-		ContextPercent:    42,
-	}
-	cfg := config.LoadHud()
-	cfg.Style.Mode = "capsule"
-	cfg.Style.Separator = " || "
-	cfg.Lines = []config.Line{
-		{Widgets: []string{"model", "context"}},
-	}
-
-	var buf bytes.Buffer
-	Render(&buf, ctx, cfg)
-
-	out := buf.String()
-	if strings.Contains(out, " || ") {
-		t.Errorf("capsule mode must not use separator, got %q", out)
+	// Plain mode uses the separator (spaces become NBSP in output).
+	nbspSep := strings.ReplaceAll(" | ", " ", "\u00a0")
+	if !strings.Contains(out, nbspSep) {
+		t.Errorf("expected separator in plain fallback output, got %q", out)
 	}
 }
 
@@ -545,10 +525,6 @@ func TestRender_MinimalMode(t *testing.T) {
 	}
 	if !strings.Contains(out, "10%") {
 		t.Errorf("expected '10%%' in minimal output, got %q", out)
-	}
-	// No capsule caps.
-	if strings.Contains(out, capsuleLeft) || strings.Contains(out, capsuleRight) {
-		t.Errorf("minimal mode must not contain capsule caps, got %q", out)
 	}
 }
 
@@ -586,7 +562,7 @@ func TestRender_PerLineMode(t *testing.T) {
 	cfg.Style.Mode = "plain"
 	cfg.Style.Separator = " || "
 	cfg.Lines = []config.Line{
-		{Widgets: []string{"model"}, Mode: "capsule"},
+		{Widgets: []string{"model"}, Mode: "powerline"},
 		{Widgets: []string{"context"}, Mode: "minimal"},
 	}
 
@@ -594,9 +570,9 @@ func TestRender_PerLineMode(t *testing.T) {
 	Render(&buf, ctx, cfg)
 
 	out := buf.String()
-	// First line (capsule) must have rounded caps.
-	if !strings.Contains(out, capsuleLeft) {
-		t.Errorf("per-line capsule override: expected left cap in output, got %q", out)
+	// First line (powerline) must have powerline arrows.
+	if !strings.Contains(out, powerlineArrow) && !strings.Contains(out, powerlineStartCap) {
+		t.Errorf("per-line powerline override: expected powerline chars in output, got %q", out)
 	}
 	// The separator is from plain mode and must not appear since both lines use overrides.
 	if strings.Contains(out, " || ") {
@@ -606,14 +582,14 @@ func TestRender_PerLineMode(t *testing.T) {
 
 func TestLineMode_Defaults(t *testing.T) {
 	line := config.Line{Widgets: []string{"model"}}
-	if got := lineMode(line, "capsule"); got != "capsule" {
-		t.Errorf("expected global mode 'capsule', got %q", got)
+	if got := lineMode(line, "powerline"); got != "powerline" {
+		t.Errorf("expected global mode 'powerline', got %q", got)
 	}
 }
 
 func TestLineMode_PerLineOverride(t *testing.T) {
 	line := config.Line{Widgets: []string{"model"}, Mode: "minimal"}
-	if got := lineMode(line, "capsule"); got != "minimal" {
+	if got := lineMode(line, "powerline"); got != "minimal" {
 		t.Errorf("expected per-line override 'minimal', got %q", got)
 	}
 }

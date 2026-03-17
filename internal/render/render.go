@@ -38,11 +38,6 @@ const (
 	// before the first segment as an opening cap.
 	powerlineStartCap = "\ue0b2"
 
-	// capsuleLeft is U+E0B6 — the Nerd Font rounded left cap.
-	capsuleLeft = "\ue0b6"
-
-	// capsuleRight is U+E0B4 — the Nerd Font rounded right cap.
-	capsuleRight = "\ue0b4"
 )
 
 // defaultPowerlineBg is the fallback xterm-256 background color (dark gray)
@@ -141,58 +136,6 @@ func renderPowerline(results []widget.WidgetResult) string {
 	return sb.String()
 }
 
-// renderCapsule wraps each non-empty segment with Nerd Font rounded caps
-// (U+E0B6 left, U+E0B4 right). Each segment is styled via applyWidgetStyle
-// and the caps are colored to match the segment's background. Segments are
-// space-separated, giving a "pill" appearance without inter-segment transitions.
-//
-// When results is empty the function returns "".
-func renderCapsule(results []widget.WidgetResult, line config.Line, cfg *config.Config) string {
-	var parts []string
-	for i, r := range results {
-		if r.IsEmpty() {
-			continue
-		}
-		// Resolve the segment's background so we can color the caps to match.
-		bg := r.BgColor
-		if bg == "" {
-			name := ""
-			if i < len(line.Widgets) {
-				name = line.Widgets[i]
-			}
-			if name != "" {
-				if colors, ok := cfg.ResolvedTheme[name]; ok {
-					bg = colors.Bg
-				}
-			}
-		}
-
-		text := applyWidgetStyle(r, line.Widgets[i], cfg)
-
-		var sb strings.Builder
-		if bg != "" {
-			// Caps share the segment's background color as their foreground so
-			// they appear to "blend" with the segment content.
-			sb.WriteString(ansiSetFg(bg))
-		}
-		sb.WriteString(capsuleLeft)
-		sb.WriteString(ansiReset)
-		sb.WriteString(text)
-		sb.WriteString(ansiReset)
-		if bg != "" {
-			sb.WriteString(ansiSetFg(bg))
-		}
-		sb.WriteString(capsuleRight)
-		sb.WriteString(ansiReset)
-
-		parts = append(parts, sb.String())
-	}
-	if len(parts) == 0 {
-		return ""
-	}
-	return strings.Join(parts, " ")
-}
-
 // renderMinimal joins non-empty segments with a single space. No decorators,
 // no background colors — just the widget text with its fg color applied.
 //
@@ -250,7 +193,6 @@ func lineMode(line config.Line, globalMode string) string {
 // and line.Mode (per-line override). Accepted modes:
 //   - "plain"     (default): separator-joined pre-styled strings
 //   - "powerline": Nerd Font arrow transitions between segments
-//   - "capsule":   each segment wrapped with Nerd Font rounded caps
 //   - "minimal":   space-separated, fg color only, no background or decorators
 //
 // When ctx.TerminalWidth is at least minTruncateWidth (20), each output line
@@ -282,8 +224,6 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 		switch mode {
 		case "powerline":
 			output = renderPowerline(results)
-		case "capsule":
-			output = renderCapsule(results, line, cfg)
 		case "minimal":
 			output = renderMinimal(results, line, cfg)
 		default: // "plain" or any unknown value

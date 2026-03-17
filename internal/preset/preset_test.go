@@ -28,10 +28,10 @@ func TestLoadUnknownPreset(t *testing.T) {
 	}
 }
 
-func TestBuiltinNamesReturnsSixSorted(t *testing.T) {
+func TestBuiltinNamesReturnsFiveSorted(t *testing.T) {
 	names := preset.BuiltinNames()
-	if len(names) != 6 {
-		t.Errorf("BuiltinNames() returned %d names, want 6: %v", len(names), names)
+	if len(names) != 5 {
+		t.Errorf("BuiltinNames() returned %d names, want 5: %v", len(names), names)
 	}
 	for i := 1; i < len(names); i++ {
 		if names[i] <= names[i-1] {

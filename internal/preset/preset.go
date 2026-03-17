@@ -16,7 +16,7 @@ type Preset struct {
 	Lines          []config.Line
 	Separator      string
 	Icons          string
-	Mode           string // plain, powerline, capsule, minimal
+	Mode           string // plain, powerline, minimal
 	Theme          string
 	DirectoryStyle string
 }

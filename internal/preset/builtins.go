@@ -53,17 +53,6 @@ var builtins = map[string]Preset{
 		Theme:          "dark",
 		DirectoryStyle: "basename",
 	},
-	"capsule": {
-		Name: "capsule",
-		Lines: []config.Line{
-			{Widgets: []string{"model", "context", "git", "cost", "duration"}},
-		},
-		Separator:      "",
-		Icons:          "nerdfont",
-		Mode:           "capsule",
-		Theme:          "default",
-		DirectoryStyle: "basename",
-	},
 	"minimal": {
 		Name: "minimal",
 		Lines: []config.Line{

@@ -37,7 +37,6 @@ const DefaultTemplate = `# tail-claude-hud configuration
 #   mode = "powerline"  — use powerline arrows for this line only
 [[line]]
 widgets = ["model", "context", "project", "todos", "duration"]
-# mode = "capsule"  # override style.mode for this line
 
 [[line]]
 widgets = ["agents"]
@@ -96,7 +95,6 @@ theme = "default"
 # Segment decoration mode for all lines (individual lines can override with mode = "..."):
 #   plain     — separator-joined widgets (default)
 #   powerline — arrow transitions between segments (requires a Nerd Font terminal)
-#   capsule   — each segment wrapped with Nerd Font rounded caps ( / )
 #   minimal   — space-separated, fg color only, no decorators
 mode = "plain"
 
