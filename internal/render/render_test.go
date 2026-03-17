@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
@@ -252,7 +251,7 @@ func TestRender_ReplacesSpacesWithNBSP(t *testing.T) {
 }
 
 // TestRender_PlainModeOutputIdentical verifies that the env widget pre-styles
-// its output with Faint (FgColor=="") and the renderer passes it through as-is.
+// its output with MutedStyle (FgColor=="") and the renderer passes it through as-is.
 func TestRender_PlainModeOutputIdentical(t *testing.T) {
 	ctx := &model.RenderContext{
 		EnvCounts: &model.EnvCounts{MCPServers: 3, Hooks: 2},
@@ -267,11 +266,10 @@ func TestRender_PlainModeOutputIdentical(t *testing.T) {
 
 	rendered := strings.TrimRight(buf.String(), "\n")
 
-	// The Env widget pre-styles with Faint and returns FgColor="".
+	// The Env widget pre-styles with MutedStyle (Color "8") and returns FgColor="".
 	// The renderer passes the pre-styled Text through as-is (with ansiReset prefix
 	// and spaces converted to NBSP).
-	faintStyle := lipgloss.NewStyle().Faint(true)
-	styled := faintStyle.Render("3M 2H")
+	styled := widget.MutedStyle.Render("3M 2H")
 	want := strings.ReplaceAll("\x1b[0m"+styled, " ", "\u00a0")
 	if rendered != want {
 		t.Errorf("plain mode output mismatch: got %q, want %q", rendered, want)

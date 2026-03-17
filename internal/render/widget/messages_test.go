@@ -43,7 +43,7 @@ func TestMessagesWidget_ExactFormat(t *testing.T) {
 	cfg := defaultCfg()
 
 	got := Messages(ctx, cfg)
-	want := dimStyle.Render("3 msgs")
+	want := MutedStyle.Render("3 msgs")
 	if got.Text != want {
 		t.Errorf("Messages: expected %q, got %q", want, got.Text)
 	}

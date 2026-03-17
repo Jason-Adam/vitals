@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"charm.land/lipgloss/v2"
-
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
 )
 
-var envStyle = lipgloss.NewStyle().Faint(true)
+var envStyle = MutedStyle
 
 // Env renders a compact summary of the active Claude Code environment.
 // Each non-zero category is shown with a letter suffix:

@@ -34,5 +34,5 @@ func Skills(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	}
 
 	list := strings.Join(unique, ", ")
-	return WidgetResult{Text: dimStyle.Render(list)}
+	return WidgetResult{Text: MutedStyle.Render(list)}
 }

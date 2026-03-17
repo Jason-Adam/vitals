@@ -13,5 +13,5 @@ func Session(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Transcript == nil || ctx.Transcript.SessionName == "" {
 		return WidgetResult{}
 	}
-	return WidgetResult{Text: dimStyle.Render(ctx.Transcript.SessionName)}
+	return WidgetResult{Text: MutedStyle.Render(ctx.Transcript.SessionName)}
 }

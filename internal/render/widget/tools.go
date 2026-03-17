@@ -95,7 +95,7 @@ func renderToolEntry(icons Icons, t model.ToolEntry) string {
 	if !t.Completed {
 		// Running: yellow category icon only; name uses default foreground to match
 		// the completed-tool pattern where only the icon carries color.
-		icon := yellowStyle.Render(catIcon)
+		icon := yellowStyle.Bold(true).Render(catIcon)
 		return fmt.Sprintf("%s %s", icon, t.Name)
 	}
 

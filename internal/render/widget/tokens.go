@@ -36,5 +36,5 @@ func Tokens(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 		parts = append(parts, fmt.Sprintf("%s cache", formatTokenCount(cache)))
 	}
 
-	return WidgetResult{Text: dimStyle.Render(strings.Join(parts, " · "))}
+	return WidgetResult{Text: MutedStyle.Render(strings.Join(parts, " · "))}
 }

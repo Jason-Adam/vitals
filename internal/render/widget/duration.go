@@ -5,13 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/lipgloss/v2"
-
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
 )
 
-var durationStyle = lipgloss.NewStyle().Faint(true)
+var durationStyle = MutedStyle
 
 // Duration renders the session elapsed time.
 //

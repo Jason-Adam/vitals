@@ -108,6 +108,9 @@ func Context(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	}
 
 	activeStyle := contextThresholds(pct, warnAt, critAt, contextColor, warningColor, criticalColor)
+	if pct >= warnAt {
+		activeStyle = activeStyle.Bold(true)
+	}
 
 	// Compute token totals used by "tokens" and "remaining" modes.
 	used := ctx.InputTokens + ctx.CacheCreation + ctx.CacheRead

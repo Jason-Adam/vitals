@@ -17,5 +17,5 @@ func Messages(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Transcript == nil || ctx.Transcript.MessageCount == 0 {
 		return WidgetResult{}
 	}
-	return WidgetResult{Text: dimStyle.Render(fmt.Sprintf("%d msgs", ctx.Transcript.MessageCount))}
+	return WidgetResult{Text: MutedStyle.Render(fmt.Sprintf("%d msgs", ctx.Transcript.MessageCount))}
 }
