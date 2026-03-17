@@ -10,6 +10,7 @@ import (
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/gather"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/kylesnowschwartz/tail-claude-hud/internal/preset"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/render"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/stdin"
 )
@@ -17,7 +18,45 @@ import (
 func main() {
 	dumpCurrent := flag.Bool("dump-current", false, "render the statusline from a transcript file instead of stdin")
 	initConfig := flag.Bool("init", false, "generate a default config file at ~/.config/tail-claude-hud/config.toml")
+	listPresets := flag.Bool("list-presets", false, "print available preset names and exit")
+	previewPath := flag.String("preview", "", "render statusline from a transcript file using mock stdin data")
+	presetName := flag.String("preset", "", "apply a named preset or TOML file path (requires --preview)")
 	flag.Parse()
+
+	if *listPresets {
+		for _, name := range preset.ListAll() {
+			fmt.Println(name)
+		}
+		return
+	}
+
+	if *presetName != "" && *previewPath == "" {
+		fmt.Fprintf(os.Stderr, "tail-claude-hud: --preset requires --preview\n")
+		os.Exit(1)
+	}
+
+	if *previewPath != "" {
+		if _, err := os.Stat(*previewPath); err != nil {
+			fmt.Fprintf(os.Stderr, "tail-claude-hud: --preview: %v\n", err)
+			os.Exit(1)
+		}
+
+		input := stdin.MockStdinData(*previewPath)
+		cfg := config.LoadHud()
+
+		if *presetName != "" {
+			p, err := resolvePreset(*presetName)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "tail-claude-hud: %v\n", err)
+				os.Exit(1)
+			}
+			preset.ApplyPreset(cfg, p)
+		}
+
+		ctx := gather.Gather(input, cfg)
+		render.Render(os.Stdout, ctx, cfg)
+		return
+	}
 
 	if *initConfig {
 		if err := config.Init(); err != nil {
@@ -56,6 +95,26 @@ func main() {
 
 	// Render and print.
 	render.Render(os.Stdout, ctx, cfg)
+}
+
+// resolvePreset loads a preset by name or file path.
+// When value contains "/" or ends in ".toml", it is treated as a file path.
+// Otherwise, built-in presets are tried first, then custom presets.
+func resolvePreset(value string) (preset.Preset, error) {
+	if strings.Contains(value, "/") || strings.HasSuffix(value, ".toml") {
+		return preset.LoadFromFile(value)
+	}
+
+	if p, ok := preset.Load(value); ok {
+		return p, nil
+	}
+
+	if p, err := preset.LoadCustom(value); err == nil {
+		return p, nil
+	}
+
+	available := preset.ListAll()
+	return preset.Preset{}, fmt.Errorf("--preset: unknown preset %q (available: %s)", value, strings.Join(available, ", "))
 }
 
 // readFromFile loads the last-stdin snapshot (model, context window) and

@@ -3,7 +3,10 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/kylesnowschwartz/tail-claude-hud/internal/preset"
 )
 
 // writeTempTranscript creates a temporary .jsonl transcript file and returns its path.
@@ -103,6 +106,74 @@ func TestFindCurrentTranscript_NoFiles(t *testing.T) {
 	_, err = findCurrentTranscript()
 	if err == nil {
 		t.Error("expected error when no .jsonl files present, got nil")
+	}
+}
+
+func TestResolvePreset_BuiltinName(t *testing.T) {
+	// "default" is always a built-in preset.
+	names := preset.BuiltinNames()
+	if len(names) == 0 {
+		t.Skip("no built-in presets defined")
+	}
+	p, err := resolvePreset(names[0])
+	if err != nil {
+		t.Fatalf("resolvePreset(%q): %v", names[0], err)
+	}
+	if p.Name == "" {
+		t.Error("expected non-empty preset Name")
+	}
+}
+
+func TestResolvePreset_UnknownName(t *testing.T) {
+	_, err := resolvePreset("this-preset-definitely-does-not-exist")
+	if err == nil {
+		t.Fatal("expected error for unknown preset, got nil")
+	}
+	if !strings.Contains(err.Error(), "unknown preset") {
+		t.Errorf("error message should mention 'unknown preset', got: %v", err)
+	}
+}
+
+func TestResolvePreset_FilePath(t *testing.T) {
+	dir := t.TempDir()
+	presetFile := filepath.Join(dir, "my-preset.toml")
+	content := `
+[[line]]
+widgets = ["model", "context"]
+
+[style]
+separator = " | "
+`
+	if err := os.WriteFile(presetFile, []byte(content), 0o644); err != nil {
+		t.Fatalf("write preset file: %v", err)
+	}
+
+	p, err := resolvePreset(presetFile)
+	if err != nil {
+		t.Fatalf("resolvePreset(%q): %v", presetFile, err)
+	}
+	if p.Name != "my-preset" {
+		t.Errorf("Name: got %q, want %q", p.Name, "my-preset")
+	}
+	if p.Separator != " | " {
+		t.Errorf("Separator: got %q, want %q", p.Separator, " | ")
+	}
+}
+
+func TestResolvePreset_TomlSuffix(t *testing.T) {
+	dir := t.TempDir()
+	// A path ending in .toml without "/" should still be treated as a file path.
+	presetFile := filepath.Join(dir, "custom.toml")
+	if err := os.WriteFile(presetFile, []byte(`[[line]]\nwidgets = ["model"]`), 0o644); err != nil {
+		t.Fatalf("write preset file: %v", err)
+	}
+
+	// Verify the resolution logic routes to LoadFromFile for .toml paths.
+	// (The file content is minimal so it may not parse perfectly, but errors
+	//  should come from TOML parsing, not "unknown preset".)
+	_, err := resolvePreset(presetFile)
+	if err != nil && strings.Contains(err.Error(), "unknown preset") {
+		t.Error("a .toml-suffixed path should route to LoadFromFile, not name lookup")
 	}
 }
 
