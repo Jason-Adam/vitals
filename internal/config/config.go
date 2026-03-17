@@ -143,6 +143,13 @@ func resolveTheme(cfg *Config) {
 	}
 }
 
+// ResolveTheme is the exported equivalent of resolveTheme, exposed so that
+// packages that hold a *Config (e.g. the preset package) can trigger a
+// palette refresh after mutating Style fields.
+func ResolveTheme(cfg *Config) {
+	resolveTheme(cfg)
+}
+
 // configPath returns the first config file path that exists, checking XDG
 // location first, then the legacy ~/.claude/plugins path.
 // Returns empty string when neither path exists.

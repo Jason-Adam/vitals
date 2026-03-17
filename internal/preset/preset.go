@@ -37,3 +37,49 @@ func BuiltinNames() []string {
 	sort.Strings(names)
 	return names
 }
+
+// ApplyPreset overlays a preset's visual settings onto cfg.
+// It replaces Lines and sets Style.Separator, Icons, Mode, Theme, and
+// Directory.Style from the preset, then calls config.ResolveTheme so the
+// updated palette is ready for rendering.
+//
+// User-preference fields are never touched: Thresholds, Context, Git, Speed,
+// and Theme.Overrides remain exactly as the user configured them.
+func ApplyPreset(cfg *config.Config, p Preset) {
+	if len(p.Lines) > 0 {
+		cfg.Lines = p.Lines
+	}
+	if p.Separator != "" {
+		cfg.Style.Separator = p.Separator
+	}
+	if p.Icons != "" {
+		cfg.Style.Icons = p.Icons
+	}
+	if p.Mode != "" {
+		cfg.Style.Mode = p.Mode
+	}
+	if p.Theme != "" {
+		cfg.Style.Theme = p.Theme
+	}
+	if p.DirectoryStyle != "" {
+		cfg.Directory.Style = p.DirectoryStyle
+	}
+	config.ResolveTheme(cfg)
+}
+
+// LoadHudWithPreset loads the default config via config.LoadHud and then
+// applies the named preset. If presetName is empty, or if no preset with
+// that name exists in the built-in registry, the unmodified config is
+// returned. This function never returns nil.
+func LoadHudWithPreset(presetName string) *config.Config {
+	cfg := config.LoadHud()
+	if presetName == "" {
+		return cfg
+	}
+	p, ok := Load(presetName)
+	if !ok {
+		return cfg
+	}
+	ApplyPreset(cfg, p)
+	return cfg
+}
