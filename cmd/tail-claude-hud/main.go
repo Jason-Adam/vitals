@@ -23,7 +23,7 @@ func main() {
 	initConfig := flag.Bool("init", false, "generate a default config file at ~/.config/tail-claude-hud/config.toml")
 	listPresets := flag.Bool("list-presets", false, "print available preset names and exit")
 	previewPath := flag.String("preview", "", "render statusline from a transcript file using mock stdin data")
-	presetName := flag.String("preset", "", "apply a named preset or TOML file path (requires --preview)")
+	presetName := flag.String("preset", "", "apply a named preset or TOML file path")
 	watch := flag.Bool("watch", false, "continuously re-render on transcript changes (requires --preview)")
 	flag.Parse()
 
@@ -39,38 +39,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *presetName != "" && *previewPath == "" {
-		fmt.Fprintf(os.Stderr, "tail-claude-hud: --preset requires --preview\n")
-		os.Exit(1)
-	}
-
-	if *previewPath != "" {
-		if _, err := os.Stat(*previewPath); err != nil {
-			fmt.Fprintf(os.Stderr, "tail-claude-hud: --preview: %v\n", err)
-			os.Exit(1)
-		}
-
-		input := stdin.MockStdinData(*previewPath)
-		cfg := config.LoadHud()
-
-		if *presetName != "" {
-			p, err := resolvePreset(*presetName)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "tail-claude-hud: %v\n", err)
-				os.Exit(1)
-			}
-			preset.ApplyPreset(cfg, p)
-		}
-
-		ctx := gather.Gather(input, cfg)
-		render.Render(os.Stdout, ctx, cfg)
-
-		if *watch {
-			watchAndRender(*previewPath, input, cfg)
-		}
-		return
-	}
-
 	if *initConfig {
 		if err := config.Init(); err != nil {
 			fmt.Fprintf(os.Stderr, "tail-claude-hud: %v\n", err)
@@ -79,10 +47,29 @@ func main() {
 		return
 	}
 
+	// Load config and apply preset (if any) before choosing the data source.
+	cfg := config.LoadHud()
+
+	if *presetName != "" {
+		p, err := resolvePreset(*presetName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "tail-claude-hud: %v\n", err)
+			os.Exit(1)
+		}
+		preset.ApplyPreset(cfg, p)
+	}
+
+	// Resolve input data from one of three sources.
 	var input *model.StdinData
 	var err error
 
-	if *dumpCurrent {
+	if *previewPath != "" {
+		if _, err := os.Stat(*previewPath); err != nil {
+			fmt.Fprintf(os.Stderr, "tail-claude-hud: --preview: %v\n", err)
+			os.Exit(1)
+		}
+		input = stdin.MockStdinData(*previewPath)
+	} else if *dumpCurrent {
 		input, err = readFromFile()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "tail-claude-hud: %v\n", err)
@@ -100,14 +87,15 @@ func main() {
 		return
 	}
 
-	// Load HUD config (fast, single file read).
-	cfg := config.LoadHud()
-
 	// Collect data in parallel for configured widgets.
 	ctx := gather.Gather(input, cfg)
 
 	// Render and print.
 	render.Render(os.Stdout, ctx, cfg)
+
+	if *watch && *previewPath != "" {
+		watchAndRender(*previewPath, input, cfg)
+	}
 }
 
 // resolvePreset loads a preset by name or file path.
