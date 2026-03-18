@@ -258,12 +258,13 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 			output = ansi.Truncate(output, ctx.TerminalWidth, truncateSuffix)
 		}
 
-		// Prepend reset so our colors override Claude Code's dim styling.
+		// Prepend and append reset so our colors don't leak into Claude Code's
+		// dim styling (prefix) or bleed background state across line breaks (suffix).
 		// Then replace spaces with non-breaking spaces (U+00A0) to prevent
 		// VS Code's integrated terminal from trimming trailing whitespace.
 		// ANSI escape sequences do not contain spaces, so this replacement
 		// is safe to apply to the full line including escape codes.
-		outLine := strings.ReplaceAll(ansiReset+output, " ", "\u00a0")
+		outLine := strings.ReplaceAll(ansiReset+output+ansiReset, " ", "\u00a0")
 		fmt.Fprintln(w, outLine)
 	}
 }
