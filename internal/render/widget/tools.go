@@ -93,25 +93,22 @@ func renderToolEntry(icons Icons, t model.ToolEntry) string {
 	catIcon := CategoryIcon(icons, t.Category)
 
 	if !t.Completed {
-		// Running: yellow category icon only; name uses default foreground to match
-		// the completed-tool pattern where only the icon carries color.
-		icon := yellowStyle.Bold(true).Render(catIcon)
-		return fmt.Sprintf("%s %s", icon, t.Name)
+		// Running: yellow icon+name as a single glyph.
+		return yellowStyle.Bold(true).Render(catIcon + t.Name)
 	}
 
 	if t.HasError {
-		// Error: red category icon + name + duration.
-		icon := redStyle.Render(catIcon)
-		name := redStyle.Render(t.Name)
+		// Error: red icon+name + duration.
+		label := redStyle.Render(catIcon + t.Name)
 		dur := redStyle.Render(formatDuration(t.DurationMs))
-		return fmt.Sprintf("%s %s %s", icon, name, dur)
+		return fmt.Sprintf("%s %s", label, dur)
 	}
 
-	// Completed: green category icon + name + duration.
+	// Completed: green icon + dim name + duration.
 	icon := greenStyle.Render(catIcon)
 	name := dimStyle.Render(t.Name)
 	dur := dimStyle.Render(formatDuration(t.DurationMs))
-	return fmt.Sprintf("%s %s %s", icon, name, dur)
+	return fmt.Sprintf("%s%s %s", icon, name, dur)
 }
 
 // formatDuration converts a millisecond duration into a compact human-readable string.

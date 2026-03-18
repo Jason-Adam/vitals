@@ -86,7 +86,7 @@ func IconsFor(mode string) Icons {
 			Running:  "󰪠",          // half-filled circle: static running indicator
 			Clock:    "\uf017",     // nf-fa-clock_o
 			Folder:   "\uf07b",     // nf-fa-folder
-			Branch:   "\ue0a0",     // nf-pl-branch
+			Branch:   "",          // nf-pl-branch
 			Read:     "\ue28b",     // nf-fae-book_open_o
 			Edit:     "\uee75",     // nf-fa-pen_nib
 			Write:    "\uee75",     // nf-fa-pen_nib (same glyph as Edit)

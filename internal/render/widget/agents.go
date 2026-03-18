@@ -82,7 +82,7 @@ func formatAgentEntry(a model.AgentEntry, icons Icons) string {
 	dimColorStyle := style.Faint(true)
 	label := icon + " " + displayName + modelSuffix
 	duration := formatDuration(a.DurationMs)
-	return dimColorStyle.Render(label) + " " + greenStyle.Render(icons.Check) + " " + dimStyle.Render(duration)
+	return dimColorStyle.Render(label) + " " + greenStyle.Render(icons.Check) + dimStyle.Render(duration)
 }
 
 // modelFamilySuffix returns a parenthetical suffix for the model family if

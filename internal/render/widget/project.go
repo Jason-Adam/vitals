@@ -1,56 +1,28 @@
 package widget
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
 )
 
-// Project renders a merged directory + git segment.
+// Project composes the Directory and Git widgets into a single segment
+// without a separator between them.
 // Format: '{directory} {branch}{dirty}{ahead}{behind}'
 // e.g. 'tail-claude-hud main*' or 'tail-claude-hud feat/auth↑2'
-// Directory is magenta bold; branch name is cyan; dirty/ahead/behind are dim.
-// Returns an empty WidgetResult when ctx.Cwd is empty.
-// When ctx.Git is nil, renders directory only (no git suffix).
-// FgColor is left empty because the widget composes multiple styles internally;
+// Returns an empty WidgetResult when both sub-widgets are empty.
+// When Git has no data, renders directory only.
+// FgColor is left empty because the sub-widgets compose multiple styles;
 // the renderer passes the pre-styled Text through as-is.
 func Project(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
-	if ctx.Cwd == "" {
+	dir := Directory(ctx, cfg)
+	if dir.IsEmpty() {
 		return WidgetResult{}
 	}
 
-	levels := cfg.Directory.Levels
-	if levels <= 0 {
-		levels = 1
+	git := Git(ctx, cfg)
+	if git.IsEmpty() {
+		return dir
 	}
 
-	dirName := lastNSegments(ctx.Cwd, levels)
-	dir := dirStyle.Render(dirName)
-
-	if ctx.Git == nil {
-		return WidgetResult{Text: dir}
-	}
-
-	g := ctx.Git
-	branch := gitBranchStyle.Render(g.Branch)
-
-	// Build the dim suffix: dirty indicator, ahead, behind.
-	var dimParts strings.Builder
-	if g.IsDirty() {
-		dimParts.WriteString("*")
-	}
-	if g.AheadBy > 0 {
-		dimParts.WriteString(fmt.Sprintf("↑%d", g.AheadBy))
-	}
-	if g.BehindBy > 0 {
-		dimParts.WriteString(fmt.Sprintf("↓%d", g.BehindBy))
-	}
-
-	suffix := dimParts.String()
-	if suffix != "" {
-		return WidgetResult{Text: dir + " " + branch + gitDimStyle.Render(suffix)}
-	}
-	return WidgetResult{Text: dir + " " + branch}
+	return WidgetResult{Text: dir.Text + " " + git.Text}
 }
