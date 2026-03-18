@@ -2,6 +2,8 @@ package color
 
 import (
 	"testing"
+
+	"github.com/charmbracelet/colorprofile"
 )
 
 func TestDetectLevel_COLORTERM(t *testing.T) {
@@ -172,6 +174,23 @@ func TestLevelString(t *testing.T) {
 	for _, tc := range tests {
 		if got := tc.level.String(); got != tc.want {
 			t.Errorf("Level(%d).String() = %q, want %q", tc.level, got, tc.want)
+		}
+	}
+}
+
+func TestColorProfile(t *testing.T) {
+	tests := []struct {
+		level Level
+		want  colorprofile.Profile
+	}{
+		{LevelTruecolor, colorprofile.TrueColor},
+		{Level256, colorprofile.ANSI256},
+		{LevelBasic, colorprofile.ANSI},
+	}
+	for _, tc := range tests {
+		got := tc.level.ColorProfile()
+		if got != tc.want {
+			t.Errorf("Level(%v).ColorProfile() = %v, want %v", tc.level, got, tc.want)
 		}
 	}
 }

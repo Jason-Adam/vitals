@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
@@ -833,5 +834,40 @@ func TestRender_PowerlineThemeFgOverride(t *testing.T) {
 	}
 	if !strings.Contains(out, "Sonnet") {
 		t.Errorf("expected 'Sonnet' in powerline output, got %q", out)
+	}
+}
+
+// TestRender_ColorLevelWiresLipglossProfile verifies that Render() applies
+// cfg.Style.ColorLevel to lipgloss.Writer.Profile so that color downsampling
+// reflects the user's explicit preference rather than auto-detection from the
+// pipe environment (where no TTY is present).
+func TestRender_ColorLevelWiresLipglossProfile(t *testing.T) {
+	ctx := &model.RenderContext{ModelDisplayName: "Sonnet"}
+
+	tests := []struct {
+		colorLevel string
+		want       colorprofile.Profile
+	}{
+		{"truecolor", colorprofile.TrueColor},
+		{"256", colorprofile.ANSI256},
+		{"basic", colorprofile.ANSI},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.colorLevel, func(t *testing.T) {
+			cfg := config.LoadHud()
+			cfg.Style.ColorLevel = tc.colorLevel
+			cfg.Lines = []config.Line{
+				{Widgets: []string{"model"}},
+			}
+
+			var buf bytes.Buffer
+			Render(&buf, ctx, cfg)
+
+			if lipgloss.Writer.Profile != tc.want {
+				t.Errorf("color_level=%q: lipgloss.Writer.Profile = %v, want %v",
+					tc.colorLevel, lipgloss.Writer.Profile, tc.want)
+			}
+		})
 	}
 }

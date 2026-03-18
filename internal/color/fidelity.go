@@ -6,6 +6,8 @@ package color
 import (
 	"os"
 	"strings"
+
+	"github.com/charmbracelet/colorprofile"
 )
 
 // Level represents the color depth supported by the terminal.
@@ -118,4 +120,18 @@ func LevelFromConfig(override string) Level {
 		return level
 	}
 	return DetectLevel()
+}
+
+// ColorProfile converts a Level to the corresponding colorprofile.Profile so
+// callers can apply the level to lipgloss's global writer without importing
+// colorprofile directly.
+func (l Level) ColorProfile() colorprofile.Profile {
+	switch l {
+	case LevelTruecolor:
+		return colorprofile.TrueColor
+	case Level256:
+		return colorprofile.ANSI256
+	default:
+		return colorprofile.ANSI
+	}
 }

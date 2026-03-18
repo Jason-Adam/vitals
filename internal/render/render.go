@@ -222,6 +222,14 @@ func lineMode(line config.Line, globalMode string) string {
 // The caller is expected to populate ctx.TerminalWidth before calling Render
 // (the gather stage does this via terminalWidth() in gather.go).
 func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
+	// Apply color_level from config to lipgloss's global writer so that ANSI
+	// escape codes emitted by Style.Render() are downsampled (or passed
+	// through at full fidelity) according to the user's explicit preference.
+	// Without this, lipgloss auto-detects from os.Stdout at package init time,
+	// which in pipe mode (how Claude Code runs this binary) may produce a
+	// NoTTY profile and strip all colors.
+	lipgloss.Writer.Profile = color.LevelFromConfig(cfg.Style.ColorLevel).ColorProfile()
+
 	sep := cfg.Style.Separator
 	globalMode := cfg.Style.Mode
 
