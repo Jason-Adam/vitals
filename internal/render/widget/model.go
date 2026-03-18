@@ -91,6 +91,11 @@ func Model(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 
 	name := normalizeModelName(ctx.ModelDisplayName)
 	style := ModelFamilyColor(name)
+	plain := fmt.Sprintf("[%s]", name)
 
-	return WidgetResult{Text: style.Render(fmt.Sprintf("[%s]", name))}
+	return WidgetResult{
+		Text:      style.Render(plain),
+		PlainText: plain,
+		FgColor:   ModelFamilyFgColor(name),
+	}
 }

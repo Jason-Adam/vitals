@@ -26,13 +26,22 @@ func Lines(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	}
 
 	var parts []string
+	var plainParts []string
 
 	if ctx.LinesAdded > 0 {
-		parts = append(parts, linesAddedStyle.Render(fmt.Sprintf("+%d", ctx.LinesAdded)))
+		s := fmt.Sprintf("+%d", ctx.LinesAdded)
+		parts = append(parts, linesAddedStyle.Render(s))
+		plainParts = append(plainParts, s)
 	}
 	if ctx.LinesRemoved > 0 {
-		parts = append(parts, linesRemovedStyle.Render(fmt.Sprintf("-%d", ctx.LinesRemoved)))
+		s := fmt.Sprintf("-%d", ctx.LinesRemoved)
+		parts = append(parts, linesRemovedStyle.Render(s))
+		plainParts = append(plainParts, s)
 	}
 
-	return WidgetResult{Text: strings.Join(parts, " ")}
+	return WidgetResult{
+		Text:      strings.Join(parts, " "),
+		PlainText: strings.Join(plainParts, " "),
+		FgColor:   "10",
+	}
 }

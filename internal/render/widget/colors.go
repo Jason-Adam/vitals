@@ -113,3 +113,18 @@ func ModelFamilyColor(modelName string) lipgloss.Style {
 		return defaultModelStyle
 	}
 }
+
+// ModelFamilyFgColor returns the ANSI color string for a model's family,
+// suitable for use as a WidgetResult.FgColor value.
+func ModelFamilyFgColor(modelName string) string {
+	switch ModelFamily(modelName) {
+	case "opus":
+		return "9"
+	case "sonnet":
+		return "12"
+	case "haiku":
+		return "10"
+	default:
+		return "14"
+	}
+}

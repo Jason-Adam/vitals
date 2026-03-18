@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"charm.land/lipgloss/v2"
-	"github.com/lucasb-eyer/go-colorful"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/gather"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/preset"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/render"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/stdin"
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 func main() {

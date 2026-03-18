@@ -24,5 +24,9 @@ func Project(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 		return dir
 	}
 
-	return WidgetResult{Text: dir.Text + " " + git.Text}
+	return WidgetResult{
+		Text:      dir.Text + " " + git.Text,
+		PlainText: dir.PlainText + " " + git.PlainText,
+		FgColor:   "13", // inherit directory's dominant color
+	}
 }

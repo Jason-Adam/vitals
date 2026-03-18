@@ -41,6 +41,33 @@ func contextThresholds(pct, warnAt, critAt int, contextColor, warningColor, crit
 	}
 }
 
+// thresholdFgColor returns the ANSI color string for threshold-based coloring.
+// Uses config overrides when set, otherwise returns the default green/yellow/red.
+func thresholdFgColor(pct, warnAt, critAt int, cfgContext, cfgWarning, cfgCritical string) string {
+	// Determine the effective color string for each tier.
+	greenFg := "2"
+	if cfgContext != "" {
+		greenFg = cfgContext
+	}
+	yellowFg := "3"
+	if cfgWarning != "" {
+		yellowFg = cfgWarning
+	}
+	redFg := "1"
+	if cfgCritical != "" {
+		redFg = cfgCritical
+	}
+
+	switch {
+	case pct >= critAt:
+		return redFg
+	case pct >= warnAt:
+		return yellowFg
+	default:
+		return greenFg
+	}
+}
+
 // renderBar builds a block-character progress bar of the given width.
 // Filled cells use █ and empty cells use ░.
 // Example for 40% at width 10: "████░░░░░░"
@@ -145,6 +172,20 @@ func Context(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 		text = text + " " + percentToIcon(pct)
 	}
 
+	// Build PlainText: the unstyled version for powerline/minimal rendering.
+	var plainText string
+	switch cfg.Context.Display {
+	case "bar":
+		plainText = renderBar(pct, barWidth)
+	case "both":
+		plainText = renderBar(pct, barWidth) + " " + label
+	default:
+		plainText = label
+	}
+	if cfg.Style.Icons == "nerdfont" {
+		plainText = plainText + " " + percentToIcon(pct)
+	}
+
 	// Append token breakdown when context exceeds the critical threshold and breakdown is enabled.
 	if pct > critAt && cfg.Context.ShowBreakdown {
 		breakdown := fmt.Sprintf(" in:%s cr:%s rd:%s",
@@ -153,9 +194,17 @@ func Context(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 			formatTokenCount(ctx.CacheRead),
 		)
 		text += dimStyle.Render(breakdown)
+		plainText += breakdown
 	}
 
-	return WidgetResult{Text: text}
+	fgColor := thresholdFgColor(pct, warnAt, critAt,
+		cfg.Style.Colors.Context, cfg.Style.Colors.Warning, cfg.Style.Colors.Critical)
+
+	return WidgetResult{
+		Text:      text,
+		PlainText: plainText,
+		FgColor:   fgColor,
+	}
 }
 
 // formatTokenCount formats a token count into a compact human-readable string:

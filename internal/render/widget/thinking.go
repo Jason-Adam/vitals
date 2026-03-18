@@ -23,11 +23,20 @@ func Thinking(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	icons := IconsFor(cfg.Style.Icons)
 
 	if ctx.Transcript.ThinkingActive {
-		return WidgetResult{Text: yellowStyle.Render(icons.Thinking)}
+		return WidgetResult{
+			Text:      yellowStyle.Render(icons.Thinking),
+			PlainText: icons.Thinking,
+			FgColor:   "3",
+		}
 	}
 
 	if ctx.Transcript.ThinkingCount > 0 {
-		return WidgetResult{Text: dimStyle.Render(fmt.Sprintf("%s%d", icons.Thinking, ctx.Transcript.ThinkingCount))}
+		plain := fmt.Sprintf("%s%d", icons.Thinking, ctx.Transcript.ThinkingCount)
+		return WidgetResult{
+			Text:      dimStyle.Render(plain),
+			PlainText: plain,
+			FgColor:   "8",
+		}
 	}
 
 	return WidgetResult{}

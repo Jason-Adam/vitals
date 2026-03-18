@@ -2,6 +2,7 @@ package widget
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
@@ -50,8 +51,27 @@ func Tools(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	}
 
 	var parts []string
+	var plainParts []string
+	hasRunning := false
+	hasError := false
 	for _, t := range visible {
 		parts = append(parts, renderToolEntry(icons, t))
+		plainParts = append(plainParts, renderToolEntryPlain(icons, t))
+		if !t.Completed {
+			hasRunning = true
+		}
+		if t.HasError {
+			hasError = true
+		}
+	}
+
+	// Determine dominant fg color: yellow if running, red if errored, green if all complete.
+	fgColor := "2" // all complete
+	if hasError {
+		fgColor = "1"
+	}
+	if hasRunning {
+		fgColor = "3"
 	}
 
 	// Compute the highlighted separator position using wrapping ticker logic.
@@ -60,11 +80,19 @@ func Tools(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	// has a stable visual anchor that advances with each new tool call.
 	numSeps := len(parts) - 1
 	if numSeps <= 0 {
-		return WidgetResult{Text: joinWithHighlight(parts, -1)}
+		return WidgetResult{
+			Text:      joinWithHighlight(parts, -1),
+			PlainText: joinPlain(plainParts),
+			FgColor:   fgColor,
+		}
 	}
 	highlightIdx := ctx.Transcript.DividerOffset % numSeps
 
-	return WidgetResult{Text: joinWithHighlight(parts, highlightIdx)}
+	return WidgetResult{
+		Text:      joinWithHighlight(parts, highlightIdx),
+		PlainText: joinPlain(plainParts),
+		FgColor:   fgColor,
+	}
 }
 
 // joinWithHighlight joins tool entry parts with separators, highlighting one.
@@ -86,6 +114,26 @@ func joinWithHighlight(parts []string, highlightIdx int) string {
 		out += sep + parts[i]
 	}
 	return out
+}
+
+// joinPlain joins plain-text parts with " | " (unstyled).
+func joinPlain(parts []string) string {
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.Join(parts, " | ")
+}
+
+// renderToolEntryPlain formats a single tool entry as unstyled text.
+func renderToolEntryPlain(icons Icons, t model.ToolEntry) string {
+	catIcon := CategoryIcon(icons, t.Category)
+	if !t.Completed {
+		return catIcon + t.Name
+	}
+	if t.HasError {
+		return catIcon + t.Name + " " + formatDuration(t.DurationMs)
+	}
+	return catIcon + t.Name + " " + formatDuration(t.DurationMs)
 }
 
 // renderToolEntry formats a single tool entry according to its state.

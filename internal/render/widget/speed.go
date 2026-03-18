@@ -29,7 +29,11 @@ func Speed(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 		if text == "" {
 			return WidgetResult{}
 		}
-		return WidgetResult{Text: text}
+		return WidgetResult{
+			Text:      MutedStyle.Render(text),
+			PlainText: text,
+			FgColor:   "8",
+		}
 	}
 
 	// Find the latest timestamp to anchor the window end.
@@ -58,7 +62,11 @@ func Speed(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if text == "" {
 		return WidgetResult{}
 	}
-	return WidgetResult{Text: text}
+	return WidgetResult{
+		Text:      MutedStyle.Render(text),
+		PlainText: text,
+		FgColor:   "8",
+	}
 }
 
 // computeSpeedOverSamples calculates tokens/sec for a slice of samples.

@@ -30,25 +30,36 @@ func Git(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	g := ctx.Git
 
 	var parts []string
+	var plainParts []string
 
 	// Branch icon + name in cyan.
-	branch := gitBranchStyle.Render(fmt.Sprintf("%s%s", icons.Branch, g.Branch))
-	parts = append(parts, branch)
+	branchStr := fmt.Sprintf("%s%s", icons.Branch, g.Branch)
+	parts = append(parts, gitBranchStyle.Render(branchStr))
+	plainParts = append(plainParts, branchStr)
 
 	// Dirty indicator (modified, staged, or untracked files).
 	if cfg.Git.Dirty && g.IsDirty() {
 		parts = append(parts, gitDimStyle.Render("*"))
+		plainParts = append(plainParts, "*")
 	}
 
 	// Ahead/behind counts.
 	if cfg.Git.AheadBehind {
 		if g.AheadBy > 0 {
-			parts = append(parts, gitDimStyle.Render(fmt.Sprintf("↑%d", g.AheadBy)))
+			ab := fmt.Sprintf("↑%d", g.AheadBy)
+			parts = append(parts, gitDimStyle.Render(ab))
+			plainParts = append(plainParts, ab)
 		}
 		if g.BehindBy > 0 {
-			parts = append(parts, gitDimStyle.Render(fmt.Sprintf("↓%d", g.BehindBy)))
+			ab := fmt.Sprintf("↓%d", g.BehindBy)
+			parts = append(parts, gitDimStyle.Render(ab))
+			plainParts = append(plainParts, ab)
 		}
 	}
 
-	return WidgetResult{Text: strings.Join(parts, "")}
+	return WidgetResult{
+		Text:      strings.Join(parts, ""),
+		PlainText: strings.Join(plainParts, ""),
+		FgColor:   "14",
+	}
 }

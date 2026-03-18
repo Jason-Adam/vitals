@@ -50,7 +50,11 @@ func Directory(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 		display = lastNSegments(path, levels)
 	}
 
-	return WidgetResult{Text: dirStyle.Render(display)}
+	return WidgetResult{
+		Text:      dirStyle.Render(display),
+		PlainText: display,
+		FgColor:   "13",
+	}
 }
 
 // substituteHome replaces the user's home directory prefix with "~".

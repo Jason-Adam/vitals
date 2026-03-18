@@ -36,5 +36,10 @@ func Tokens(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 		parts = append(parts, fmt.Sprintf("%s cache", formatTokenCount(cache)))
 	}
 
-	return WidgetResult{Text: MutedStyle.Render(strings.Join(parts, " · "))}
+	plain := strings.Join(parts, " · ")
+	return WidgetResult{
+		Text:      MutedStyle.Render(plain),
+		PlainText: plain,
+		FgColor:   "8",
+	}
 }

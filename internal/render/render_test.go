@@ -251,7 +251,8 @@ func TestRender_ReplacesSpacesWithNBSP(t *testing.T) {
 }
 
 // TestRender_PlainModeOutputIdentical verifies that the env widget pre-styles
-// its output with MutedStyle (FgColor=="") and the renderer passes it through as-is.
+// its Text and the plain mode renderer passes it through as-is (FgColor is
+// used by powerline/minimal modes, not plain).
 func TestRender_PlainModeOutputIdentical(t *testing.T) {
 	ctx := &model.RenderContext{
 		EnvCounts: &model.EnvCounts{MCPServers: 3, Hooks: 2},
@@ -266,19 +267,21 @@ func TestRender_PlainModeOutputIdentical(t *testing.T) {
 
 	rendered := strings.TrimRight(buf.String(), "\n")
 
-	// The Env widget pre-styles with MutedStyle (Color "8") and returns FgColor="".
-	// The renderer passes the pre-styled Text through as-is (with ansiReset prefix
-	// and spaces converted to NBSP).
+	// The Env widget pre-styles Text with MutedStyle and sets FgColor="8"
+	// for powerline/minimal. Plain mode uses pre-styled Text as-is.
 	styled := widget.MutedStyle.Render("3M 2H")
 	want := strings.ReplaceAll("\x1b[0m"+styled+"\x1b[0m\x1b[K", " ", "\u00a0")
 	if rendered != want {
 		t.Errorf("plain mode output mismatch: got %q, want %q", rendered, want)
 	}
 
-	// Cross-check: verify the WidgetResult fields themselves.
+	// Cross-check: verify the WidgetResult fields.
 	result := widget.Registry["env"](ctx, cfg)
-	if result.FgColor != "" {
-		t.Errorf("Env FgColor: expected '' (pre-styled), got %q", result.FgColor)
+	if result.FgColor != "8" {
+		t.Errorf("Env FgColor: expected '8', got %q", result.FgColor)
+	}
+	if result.PlainText != "3M 2H" {
+		t.Errorf("Env PlainText: expected '3M 2H', got %q", result.PlainText)
 	}
 	if result.Text != styled {
 		t.Errorf("Env Text: expected pre-styled %q, got %q", styled, result.Text)

@@ -41,5 +41,10 @@ func Env(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 		return WidgetResult{}
 	}
 
-	return WidgetResult{Text: envStyle.Render(strings.Join(parts, " "))}
+	plain := strings.Join(parts, " ")
+	return WidgetResult{
+		Text:      envStyle.Render(plain),
+		PlainText: plain,
+		FgColor:   "8",
+	}
 }

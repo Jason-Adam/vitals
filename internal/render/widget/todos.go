@@ -34,17 +34,27 @@ func Todos(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	icons := IconsFor(cfg.Style.Icons)
 	count := fmt.Sprintf("%d/%d", done, total)
 
-	var text string
+	var text, plainIcon, fgColor string
 	switch {
 	case done == total:
 		// All complete — green check.
 		text = fmt.Sprintf("%s %s", greenStyle.Render(icons.Check), greenStyle.Render(count))
+		plainIcon = icons.Check
+		fgColor = "2"
 	case done > 0:
 		// Partial — yellow spinner.
 		text = fmt.Sprintf("%s %s", yellowStyle.Render(icons.Running), yellowStyle.Render(count))
+		plainIcon = icons.Running
+		fgColor = "3"
 	default:
 		// Nothing done yet — dim.
 		text = fmt.Sprintf("%s %s", dimStyle.Render(icons.Running), dimStyle.Render(count))
+		plainIcon = icons.Running
+		fgColor = "8"
 	}
-	return WidgetResult{Text: text}
+	return WidgetResult{
+		Text:      text,
+		PlainText: plainIcon + " " + count,
+		FgColor:   fgColor,
+	}
 }

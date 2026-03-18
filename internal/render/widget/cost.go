@@ -42,5 +42,28 @@ func Cost(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 		activeStyle = warningColor
 	}
 
-	return WidgetResult{Text: activeStyle.Render(fmt.Sprintf("$%.2f", cost))}
+	plain := fmt.Sprintf("$%.2f", cost)
+
+	// Determine fg color for powerline/minimal modes.
+	fgColor := "2" // green default
+	if cfgCtx := cfg.Style.Colors.Context; cfgCtx != "" {
+		fgColor = cfgCtx
+	}
+	if cost >= critAt {
+		fgColor = "1"
+		if cfgCrit := cfg.Style.Colors.Critical; cfgCrit != "" {
+			fgColor = cfgCrit
+		}
+	} else if cost >= warnAt {
+		fgColor = "3"
+		if cfgWarn := cfg.Style.Colors.Warning; cfgWarn != "" {
+			fgColor = cfgWarn
+		}
+	}
+
+	return WidgetResult{
+		Text:      activeStyle.Render(plain),
+		PlainText: plain,
+		FgColor:   fgColor,
+	}
 }

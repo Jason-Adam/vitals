@@ -50,11 +50,36 @@ func Agents(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	}
 
 	var parts []string
+	var plainParts []string
 	for _, a := range toShow {
 		parts = append(parts, formatAgentEntry(a, icons))
+		plainParts = append(plainParts, formatAgentEntryPlain(a, icons))
 	}
 
-	return WidgetResult{Text: strings.Join(parts, " | ")}
+	// Use the first agent's palette color as the dominant fg.
+	fgColor := agentColors[toShow[0].ColorIndex%8]
+
+	return WidgetResult{
+		Text:      strings.Join(parts, " | "),
+		PlainText: strings.Join(plainParts, " | "),
+		FgColor:   fgColor,
+	}
+}
+
+// formatAgentEntryPlain renders a single agent entry as unstyled text.
+func formatAgentEntryPlain(a model.AgentEntry, icons Icons) string {
+	displayName := a.Name
+	if a.Description != "" {
+		displayName = a.Description
+	}
+	modelSuffix := modelFamilySuffix(a.Model)
+	label := icons.Task + " " + displayName + modelSuffix
+
+	if a.Status == "running" {
+		elapsed := formatElapsed(time.Since(a.StartTime))
+		return label + " " + icons.Running + " " + elapsed
+	}
+	return label + " " + icons.Check + " " + formatDuration(a.DurationMs)
 }
 
 // formatAgentEntry renders a single agent entry with colored icon, running

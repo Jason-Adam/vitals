@@ -1901,20 +1901,25 @@ func TestWidgetResult_IsEmpty(t *testing.T) {
 	}
 }
 
-// TestWidgetResult_PlainModeOutputIdentical verifies that the env widget
-// pre-styles its output with Faint and returns empty FgColor (pass-through
-// pattern), consistent with dimStyle widgets like session and messages.
-func TestWidgetResult_PlainModeOutputIdentical(t *testing.T) {
-	// Env widget uses envStyle.Render (Faint) and leaves FgColor empty.
+// TestWidgetResult_DualOutput verifies that the env widget sets both Text
+// (pre-styled for plain mode) and PlainText+FgColor (for powerline/minimal).
+func TestWidgetResult_DualOutput(t *testing.T) {
 	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{MCPServers: 3, Hooks: 2}}
 	cfg := defaultCfg()
 
 	result := Env(ctx, cfg)
-	if result.FgColor != "" {
-		t.Errorf("Env FgColor: expected '' (pre-styled), got %q", result.FgColor)
+
+	// FgColor must be "8" (MutedStyle's color) for powerline/minimal rendering.
+	if result.FgColor != "8" {
+		t.Errorf("Env FgColor: expected '8', got %q", result.FgColor)
 	}
 
-	// The pre-styled Text must equal envStyle.Render("3M 2H").
+	// PlainText must be the unstyled content.
+	if result.PlainText != "3M 2H" {
+		t.Errorf("Env PlainText: expected '3M 2H', got %q", result.PlainText)
+	}
+
+	// Text must be the pre-styled version for plain mode.
 	want := envStyle.Render("3M 2H")
 	if result.Text != want {
 		t.Errorf("Env Text: expected pre-styled %q, got %q", want, result.Text)

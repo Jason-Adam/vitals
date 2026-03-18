@@ -82,48 +82,48 @@ func TestXterm256ToRGB(t *testing.T) {
 
 func TestRGBToHSL(t *testing.T) {
 	tests := []struct {
-		name     string
-		c        RGB
-		wantH    float64
-		wantHue  bool // only check hue when true (achromatic colors have undefined hue)
-		wantS    float64
-		wantL    float64
-		tolH     float64
-		tolSL    float64
+		name    string
+		c       RGB
+		wantH   float64
+		wantHue bool // only check hue when true (achromatic colors have undefined hue)
+		wantS   float64
+		wantL   float64
+		tolH    float64
+		tolSL   float64
 	}{
 		{
-			name: "pure red",
-			c:    RGB{255, 0, 0},
+			name:  "pure red",
+			c:     RGB{255, 0, 0},
 			wantH: 0, wantHue: true,
 			wantS: 1.0, wantL: 0.5,
 			tolH: 0.01, tolSL: 1e-9,
 		},
 		{
-			name: "pure green",
-			c:    RGB{0, 255, 0},
+			name:  "pure green",
+			c:     RGB{0, 255, 0},
 			wantH: 120, wantHue: true,
 			wantS: 1.0, wantL: 0.5,
 			tolH: 0.01, tolSL: 1e-9,
 		},
 		{
-			name: "pure blue",
-			c:    RGB{0, 0, 255},
+			name:  "pure blue",
+			c:     RGB{0, 0, 255},
 			wantH: 240, wantHue: true,
 			wantS: 1.0, wantL: 0.5,
 			tolH: 0.01, tolSL: 1e-9,
 		},
 		{
-			name: "black",
-			c:    RGB{0, 0, 0},
+			name:    "black",
+			c:       RGB{0, 0, 0},
 			wantHue: false,
-			wantS: 0.0, wantL: 0.0,
+			wantS:   0.0, wantL: 0.0,
 			tolSL: 1e-9,
 		},
 		{
-			name: "white",
-			c:    RGB{255, 255, 255},
+			name:    "white",
+			c:       RGB{255, 255, 255},
 			wantHue: false,
-			wantS: 0.0, wantL: 1.0,
+			wantS:   0.0, wantL: 1.0,
 			tolSL: 1e-9,
 		},
 	}
@@ -150,7 +150,7 @@ func TestHueDelta(t *testing.T) {
 	}{
 		{0, 180, 180},
 		{0, 90, 90},
-		{350, 10, 20},  // wraps around the 0/360 boundary
+		{350, 10, 20}, // wraps around the 0/360 boundary
 		{10, 350, 20},
 		{0, 0, 0},
 		{180, 180, 0},

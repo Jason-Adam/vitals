@@ -123,14 +123,20 @@ func renderPowerline(results []widget.WidgetResult, names []string, cfg *config.
 	sb.WriteString(startCapStyle.Render(powerlineStartCap))
 
 	for i, s := range segs {
+		// Use PlainText (unstyled) for powerline segments so the bg/fg wrapping
+		// is not disrupted by internal ANSI resets. Fall back to Text when
+		// PlainText is not populated.
+		content := s.result.PlainText
+		if content == "" {
+			content = s.result.Text
+		}
+
 		// Segment content: bg color, fg color (if known), padded text.
 		segStyle := lipgloss.NewStyle().Background(lipgloss.Color(s.bg))
 		if s.fg != "" {
 			segStyle = segStyle.Foreground(lipgloss.Color(s.fg))
 		}
-		// When the widget pre-styled its own Text (FgColor==""), we wrap with
-		// bg only; when FgColor is set, we re-apply fg here too.
-		sb.WriteString(segStyle.Render(" " + s.result.Text + " "))
+		sb.WriteString(segStyle.Render(" " + content + " "))
 
 		// Arrow after this segment.
 		if i+1 < len(segs) {
@@ -160,12 +166,12 @@ func renderMinimal(results []widget.WidgetResult, line config.Line, cfg *config.
 		if r.IsEmpty() {
 			continue
 		}
-		// Apply fg color only when the widget explicitly set FgColor; ignore
-		// any bg from theme or widget result. When FgColor is empty the widget
-		// pre-styled its own text with internal ANSI codes — pass it through
-		// as-is to avoid double-wrapping escape sequences.
+		// Use PlainText with FgColor for clean minimal rendering. Fall back
+		// to pre-styled Text when PlainText is not available.
 		var text string
-		if r.FgColor != "" {
+		if r.PlainText != "" && r.FgColor != "" {
+			text = lipgloss.NewStyle().Foreground(lipgloss.Color(r.FgColor)).Render(r.PlainText)
+		} else if r.FgColor != "" {
 			text = lipgloss.NewStyle().Foreground(lipgloss.Color(r.FgColor)).Render(r.Text)
 		} else {
 			text = r.Text
@@ -272,26 +278,16 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 }
 
 // applyWidgetStyle converts a WidgetResult to a styled string for plain mode.
-// Theme background colors are NOT applied — those exist for powerline segments.
-// Plain mode uses transparent backgrounds so text sits naturally on the terminal.
 //
-// Only explicit widget-level BgColor (from WidgetResult) is honored. Theme fg
-// is applied when the widget provides a structured FgColor; pre-styled text
-// (FgColor == "") passes through as-is.
+// In plain mode, Text is always pre-styled by the widget with internal ANSI
+// codes (lipgloss renders). FgColor exists for powerline/minimal modes and is
+// not applied here — doing so would double-wrap the already-styled text.
+//
+// The only exception is BgColor: when explicitly set on the WidgetResult, a
+// background is applied around the pre-styled text.
 func applyWidgetStyle(r widget.WidgetResult) string {
-	// Only use bg when the widget explicitly requests it (not from theme).
-	bgColor := r.BgColor
-
-	if r.FgColor == "" {
-		if bgColor == "" {
-			return r.Text
-		}
-		return lipgloss.NewStyle().Background(lipgloss.Color(bgColor)).Render(r.Text)
+	if r.BgColor != "" {
+		return lipgloss.NewStyle().Background(lipgloss.Color(r.BgColor)).Render(r.Text)
 	}
-
-	style := lipgloss.NewStyle().Foreground(lipgloss.Color(r.FgColor))
-	if bgColor != "" {
-		style = style.Background(lipgloss.Color(bgColor))
-	}
-	return style.Render(r.Text)
+	return r.Text
 }

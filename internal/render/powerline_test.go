@@ -24,13 +24,17 @@ func makeTestConfig(lines []config.Line) *config.Config {
 }
 
 // makeResults builds a slice of WidgetResult and corresponding names from
-// (name, text) pairs, for direct testing of renderPowerline.
+// (name, text) pairs, for direct testing of renderPowerline. Both Text and
+// PlainText are set to the same value since powerline uses PlainText.
 func makeResults(pairs ...string) ([]widget.WidgetResult, []string) {
 	var results []widget.WidgetResult
 	var names []string
 	for i := 0; i+1 < len(pairs); i += 2 {
 		names = append(names, pairs[i])
-		results = append(results, widget.WidgetResult{Text: pairs[i+1]})
+		results = append(results, widget.WidgetResult{
+			Text:      pairs[i+1],
+			PlainText: pairs[i+1],
+		})
 	}
 	return results, names
 }

@@ -11,19 +11,23 @@ import (
 
 // WidgetResult holds structured output from a widget render.
 //
-// Simple widgets set Text (raw, unstyled) plus FgColor/BgColor so the renderer
-// can apply lipgloss styling in one place. Complex widgets that build multi-colored
-// output internally set FgColor="" to signal the renderer should pass Text through
-// as-is (pre-styled ANSI string).
+// Widgets populate two representations of their content:
+//   - Text: pre-styled ANSI string for plain mode (rendered with lipgloss internally)
+//   - PlainText: unstyled content for powerline/minimal modes, styled by the renderer
+//
+// FgColor tells the renderer which foreground color to apply to PlainText.
+// BgColor is an optional explicit background override (powerline bg normally
+// comes from the theme; this field overrides it when set).
 type WidgetResult struct {
-	Text    string // raw text or pre-styled ANSI string
-	FgColor string // foreground color (lipgloss color string); empty means pass through
-	BgColor string // background color (lipgloss color string); empty means transparent
+	Text      string // pre-styled ANSI string (for plain mode)
+	PlainText string // unstyled text (for powerline/minimal modes)
+	FgColor   string // foreground color (lipgloss color string) for PlainText
+	BgColor   string // background color (lipgloss color string); empty means use theme
 }
 
 // IsEmpty reports whether the result has no content to display.
 func (w WidgetResult) IsEmpty() bool {
-	return w.Text == ""
+	return w.Text == "" && w.PlainText == ""
 }
 
 // RenderFunc renders a single widget segment.
