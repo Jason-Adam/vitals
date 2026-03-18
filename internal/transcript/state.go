@@ -8,8 +8,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
+)
+
+const (
+	// stateFileTTL is how long a state file must go unmodified before it is
+	// eligible for deletion. 30 days covers any realistic session gap.
+	stateFileTTL = 30 * 24 * time.Hour
+
+	// sweepOdds controls how often a tick triggers a stale-file sweep.
+	// At 1-in-100, a session ticking at 5/s sweeps roughly every 20 seconds —
+	// precise enough given the 30-day TTL.
+	sweepOdds = 100
 )
 
 // stateFile is the JSON structure persisted to disk.
@@ -213,5 +227,37 @@ func (sm *StateManager) SaveState(transcriptPath string) error {
 		return err
 	}
 
-	return os.Rename(tmp, target)
+	if err := os.Rename(tmp, target); err != nil {
+		return err
+	}
+
+	if rand.Intn(sweepOdds) == 0 {
+		sm.sweepStaleStateFiles()
+	}
+
+	return nil
+}
+
+// sweepStaleStateFiles removes state files that have not been modified in
+// stateFileTTL. It is best-effort: errors are silently ignored so a failed
+// sweep never disrupts the normal write path.
+func (sm *StateManager) sweepStaleStateFiles() {
+	entries, err := os.ReadDir(sm.stateDir)
+	if err != nil {
+		return
+	}
+	cutoff := time.Now().Add(-stateFileTTL)
+	for _, entry := range entries {
+		name := entry.Name()
+		if !strings.HasPrefix(name, ".ts-") || !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		if info.ModTime().Before(cutoff) {
+			os.Remove(filepath.Join(sm.stateDir, name)) //nolint:errcheck
+		}
+	}
 }

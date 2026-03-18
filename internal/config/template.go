@@ -16,21 +16,29 @@ const DefaultTemplate = `# tail-claude-hud configuration
 #
 # Default layout (C+D hybrid):
 #   Line 1 (identity + health): model, context, project, todos, duration
-#   Line 2 (tools):              tools   — ephemeral, hides when empty
-#   Line 3 (per-agent activity): agents  — ephemeral, hides when empty
+#   Line 2 (per-agent activity): agents  — ephemeral, hides when empty
+#   Line 3 (tools):              tools   — ephemeral, hides when empty
 #
 # All available widgets:
-#   model     — active Claude model name
-#   context   — token usage progress bar
-#   project   — project name with optional git ahead/behind count
-#   todos     — count of active TodoWrite todos
-#   duration  — elapsed session time
-#   agents    — per-agent activity feed (requires transcript)
-#   tools     — recent tool use feed, including thinking blocks (requires transcript)
-#   git       — full repository state (dirty, ahead/behind, file stats)
-#   directory — current working directory path
-#   env       — environment variable counts (opt-in)
-#   speed     — rolling tokens/sec average (requires transcript)
+#   model       — active Claude model name
+#   context     — token usage progress bar
+#   cost        — session cost in USD; color shifts at cost warning/critical thresholds
+#   project     — project name with optional git ahead/behind count
+#   todos       — count of active TodoWrite todos
+#   duration    — elapsed session time
+#   agents      — per-agent activity feed (requires transcript)
+#   tools       — recent tool use feed, including thinking blocks (requires transcript)
+#   thinking    — thinking-block indicator; yellow while active, dim with count when done (requires transcript)
+#   tokens      — per-call token count and cache hit ratio (requires transcript)
+#   lines       — lines added/removed this session
+#   messages    — conversational turn count (requires transcript)
+#   skills      — skills invoked this session, newest-first (requires transcript)
+#   session     — session name (requires transcript)
+#   outputstyle — current output style name (e.g. "concise")
+#   git         — full repository state (dirty, ahead/behind, file stats)
+#   directory   — current working directory path
+#   env         — environment variable counts (opt-in)
+#   speed       — rolling tokens/sec average (requires transcript)
 #
 # Each [[line]] can optionally override the global style.mode:
 #   mode = "powerline"  — use powerline arrows for this line only
@@ -38,10 +46,10 @@ const DefaultTemplate = `# tail-claude-hud configuration
 widgets = ["model", "context", "project", "todos", "duration"]
 
 [[line]]
-widgets = ["tools"]
+widgets = ["agents"]
 
 [[line]]
-widgets = ["agents"]
+widgets = ["tools"]
 
 # Model widget — shows the active Claude model name.
 [model]

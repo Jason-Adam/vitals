@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"image/color"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -23,6 +25,7 @@ import (
 
 func main() {
 	dumpCurrent := flag.Bool("dump-current", false, "render the statusline from a transcript file instead of stdin")
+	dumpRaw := flag.Bool("dump-raw", false, "like --dump-current but print ANSI escape sequences as visible text for debugging")
 	initConfig := flag.Bool("init", false, "generate a default config file at ~/.config/tail-claude-hud/config.toml")
 	listPresets := flag.Bool("list-presets", false, "print available preset names and exit")
 	previewPath := flag.String("preview", "", "render statusline from a transcript file using mock stdin data")
@@ -36,6 +39,10 @@ func main() {
 			fmt.Println(name)
 		}
 		return
+	}
+
+	if *dumpRaw {
+		*dumpCurrent = true
 	}
 
 	if *watch && *previewPath == "" {
@@ -108,7 +115,13 @@ func main() {
 	ctx := gather.Gather(input, cfg)
 
 	// Render and print.
-	render.Render(os.Stdout, ctx, cfg)
+	if *dumpRaw {
+		var buf bytes.Buffer
+		render.Render(&buf, ctx, cfg)
+		printRaw(os.Stdout, buf.Bytes())
+	} else {
+		render.Render(os.Stdout, ctx, cfg)
+	}
 
 	if *watch && *previewPath != "" {
 		watchAndRender(*previewPath, input, cfg)
@@ -385,6 +398,21 @@ func isLightColor(c color.Color) bool {
 	}
 	_, _, l := col.Hsl()
 	return l >= 0.5
+}
+
+// printRaw writes rendered output with ANSI escape sequences made visible as
+// printable text. Each ESC byte (0x1b) is replaced with the literal string
+// "\x1b" so colors and cursor codes appear inline rather than being
+// interpreted by the terminal. Useful for verifying that threshold colors,
+// powerline backgrounds, and other ANSI styling are actually present.
+func printRaw(w io.Writer, data []byte) {
+	for i := 0; i < len(data); i++ {
+		if data[i] == 0x1b {
+			fmt.Fprint(w, `\x1b`)
+		} else {
+			w.Write(data[i : i+1]) //nolint:errcheck
+		}
+	}
 }
 
 // hasPowerlineLines returns true if any configured line uses powerline mode.
