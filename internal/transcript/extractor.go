@@ -511,6 +511,7 @@ func (es *ExtractionState) ToTranscriptData() *model.TranscriptData {
 	agents := make([]model.AgentEntry, 0, len(es.displayAgents))
 	for i, a := range es.displayAgents {
 		agents = append(agents, model.AgentEntry{
+			ID:          a.id,
 			Name:        a.agentType,
 			Status:      a.status,
 			Model:       a.model,

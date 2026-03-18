@@ -311,15 +311,31 @@ func discoverSubagents(transcriptPath string) []model.AgentEntry {
 			continue
 		}
 
-		// Filter warmup agents by checking the first user message.
+		// Filter warmup agents and parse first-entry timestamp.
 		filePath := filepath.Join(subagentsDir, name)
-		if isWarmupAgent(filePath) {
+		first := parseFirstEntry(filePath)
+		if first.isWarmup {
 			continue
 		}
 
 		status := "completed"
 		if now.Sub(info.ModTime()) < subagentStaleThreshold {
 			status = "running"
+		}
+
+		// Compute duration for completed agents from first-entry timestamp to
+		// file modtime. This gives the real agent runtime instead of the
+		// tool_use→tool_result delta (which is only a few ms for background agents).
+		durationMs := 0
+		if status == "completed" && !first.timestamp.IsZero() {
+			durationMs = int(info.ModTime().Sub(first.timestamp).Milliseconds())
+		}
+
+		// Use first-entry timestamp as StartTime so running agents compute
+		// elapsed time correctly. Falls back to modtime when unparseable.
+		startTime := first.timestamp
+		if startTime.IsZero() {
+			startTime = info.ModTime()
 		}
 
 		// Read .meta.json sidecar for the agentType display name.
@@ -330,9 +346,11 @@ func discoverSubagents(transcriptPath string) []model.AgentEntry {
 		}
 
 		agents = append(agents, model.AgentEntry{
+			ID:         agentID,
 			Name:       displayName,
 			Status:     status,
-			StartTime:  info.ModTime(),
+			StartTime:  startTime,
+			DurationMs: durationMs,
 			ColorIndex: colorIdx % 8,
 		})
 		colorIdx++
@@ -341,29 +359,42 @@ func discoverSubagents(transcriptPath string) []model.AgentEntry {
 	return agents
 }
 
-// isWarmupAgent reads only the first line of a subagent JSONL file to check
-// whether the agent is a warmup probe (content == "Warmup"). Returns false
-// on any read or parse error.
-func isWarmupAgent(path string) bool {
+// firstEntryInfo holds the parsed results from a subagent JSONL's first line.
+type firstEntryInfo struct {
+	isWarmup  bool
+	timestamp time.Time
+}
+
+// parseFirstEntry reads only the first line of a subagent JSONL file and
+// returns the warmup status and RFC3339 timestamp. Returns a zero-value
+// firstEntryInfo on any read or parse error.
+func parseFirstEntry(path string) firstEntryInfo {
 	line := readFirstLine(path)
 	if line == nil {
-		return false
+		return firstEntryInfo{}
 	}
 
 	var entry struct {
-		Message struct {
+		Timestamp string `json:"timestamp"`
+		Message   struct {
 			Content json.RawMessage `json:"content"`
 		} `json:"message"`
 	}
 	if err := json.Unmarshal(line, &entry); err != nil {
-		return false
+		return firstEntryInfo{}
 	}
 
 	var content string
-	if err := json.Unmarshal(entry.Message.Content, &content); err != nil {
-		return false
+	isWarmup := false
+	if err := json.Unmarshal(entry.Message.Content, &content); err == nil {
+		isWarmup = content == "Warmup"
 	}
-	return content == "Warmup"
+
+	ts, _ := time.Parse(time.RFC3339, entry.Timestamp)
+	return firstEntryInfo{
+		isWarmup:  isWarmup,
+		timestamp: ts,
+	}
 }
 
 // readAgentType reads a .meta.json sidecar file and returns the agentType
@@ -382,30 +413,40 @@ func readAgentType(path string) string {
 	return meta.AgentType
 }
 
-// mergeSubagents folds filesystem-discovered agents into the transcript data.
-// For each filesystem agent: if the transcript already has a matching agent
-// (by name), the filesystem status takes precedence when it says "running"
-// but the transcript says "completed". If no match exists, the agent is appended.
+// mergeSubagents makes filesystem agents authoritative for timing while
+// enriching them with transcript metadata (Model, Description).
+// Filesystem agents have accurate StartTime and DurationMs derived from
+// file timestamps; transcript agents have model and description fields.
 func mergeSubagents(td *model.TranscriptData, fsAgents []model.AgentEntry) {
 	if len(fsAgents) == 0 {
 		return
 	}
 
-	// Index existing transcript agents by name for quick lookup.
-	byName := make(map[string]int, len(td.Agents))
+	// Index transcript agents by name for metadata enrichment.
+	// When multiple transcript agents share a name, prefer the first unmatched one.
+	byName := make(map[string][]int, len(td.Agents))
 	for i, a := range td.Agents {
-		byName[a.Name] = i
+		byName[a.Name] = append(byName[a.Name], i)
 	}
 
-	for _, fa := range fsAgents {
-		if idx, ok := byName[fa.Name]; ok {
-			// Filesystem says running but transcript says completed: override.
-			if fa.Status == "running" && td.Agents[idx].Status == "completed" {
-				td.Agents[idx].Status = "running"
-				td.Agents[idx].DurationMs = 0
+	// Enrich filesystem agents with transcript metadata.
+	enriched := make([]model.AgentEntry, len(fsAgents))
+	copy(enriched, fsAgents)
+
+	matchedTranscript := make(map[int]bool)
+	for i, fa := range enriched {
+		if indices, ok := byName[fa.Name]; ok {
+			for _, idx := range indices {
+				if !matchedTranscript[idx] {
+					matchedTranscript[idx] = true
+					enriched[i].Model = td.Agents[idx].Model
+					enriched[i].Description = td.Agents[idx].Description
+					break
+				}
 			}
-		} else {
-			td.Agents = append(td.Agents, fa)
 		}
 	}
+
+	// Replace transcript agents with enriched filesystem agents.
+	td.Agents = enriched
 }

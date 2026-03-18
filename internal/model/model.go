@@ -110,6 +110,7 @@ type ToolEntry struct {
 
 // AgentEntry records a sub-agent task observed in the transcript.
 type AgentEntry struct {
+	ID          string    // hex UUID from the agent filename or tool_use block ID
 	Name        string
 	Status      string
 	Model       string    // e.g. "claude-haiku-4-5"
