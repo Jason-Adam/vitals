@@ -15,6 +15,7 @@ import (
 
 	"github.com/charmbracelet/x/term"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
+	"github.com/kylesnowschwartz/tail-claude-hud/internal/extracmd"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/git"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/transcript"
@@ -96,6 +97,15 @@ func Gather(input *model.StdinData, cfg *config.Config) *model.RenderContext {
 		go func() {
 			defer wg.Done()
 			ctx.Git = git.GetStatus(input.Cwd)
+		}()
+	}
+
+	// Extra command goroutine: runs user-configured command when set.
+	if cfg.Extra.Command != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ctx.ExtraOutput = extracmd.Run(cfg.Extra.Command)
 		}()
 	}
 

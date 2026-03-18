@@ -40,6 +40,10 @@ type RenderContext struct {
 	// Empty string when not provided by Claude Code.
 	OutputStyle string
 
+	// ExtraOutput is the label returned by the user's extra command.
+	// Empty when no extra command is configured or the command fails/times out.
+	ExtraOutput string
+
 	// Pointer fields — all may be nil when the corresponding data is unavailable.
 	Transcript *TranscriptData
 	EnvCounts  *EnvCounts

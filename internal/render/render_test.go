@@ -661,6 +661,49 @@ func TestRenderMinimal_EmptyFgNoTheme(t *testing.T) {
 	}
 }
 
+func TestRender_ExtraOutputAppendsLine(t *testing.T) {
+	// When ExtraOutput is set, Render must emit it as an additional line
+	// after all configured widget lines.
+	ctx := &model.RenderContext{
+		ModelDisplayName: "Sonnet",
+		ExtraOutput:      "my-custom-label",
+	}
+	cfg := config.LoadHud()
+	cfg.Lines = []config.Line{
+		{Widgets: []string{"model"}},
+	}
+
+	var buf bytes.Buffer
+	Render(&buf, ctx, cfg)
+
+	out := buf.String()
+	if !strings.Contains(out, "my-custom-label") {
+		t.Errorf("expected ExtraOutput label in render output, got %q", out)
+	}
+}
+
+func TestRender_ExtraOutputAbsentWhenEmpty(t *testing.T) {
+	// When ExtraOutput is empty, no extra line should be emitted.
+	ctx := &model.RenderContext{
+		ModelDisplayName: "Sonnet",
+		ExtraOutput:      "",
+	}
+	cfg := config.LoadHud()
+	cfg.Lines = []config.Line{
+		{Widgets: []string{"model"}},
+	}
+
+	var buf bytes.Buffer
+	Render(&buf, ctx, cfg)
+
+	out := buf.String()
+	lines := strings.Split(strings.TrimRight(out, "\n"), "\n")
+	// With one configured line and no ExtraOutput, there should be exactly 1 line.
+	if len(lines) != 1 {
+		t.Errorf("expected 1 output line when ExtraOutput is empty, got %d: %q", len(lines), out)
+	}
+}
+
 func TestLineMode_Defaults(t *testing.T) {
 	line := config.Line{Widgets: []string{"model"}}
 	if got := lineMode(line, "powerline"); got != "powerline" {

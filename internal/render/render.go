@@ -288,6 +288,14 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 		outLine := strings.ReplaceAll(ansiReset+output+ansiReset+"\x1b[K", " ", "\u00a0")
 		fmt.Fprintln(w, outLine)
 	}
+
+	// Extra command output: rendered as a final line when non-empty.
+	// The output is already sanitized by extracmd.Run (only printable chars
+	// and safe ANSI color sequences are retained).
+	if ctx.ExtraOutput != "" {
+		extraLine := strings.ReplaceAll(ansiReset+ctx.ExtraOutput+ansiReset+"\x1b[K", " ", "\u00a0")
+		fmt.Fprintln(w, extraLine)
+	}
 }
 
 // applyWidgetStyle converts a WidgetResult to a styled string for plain mode.

@@ -322,6 +322,43 @@ func TestGather_GitSpawnedForProjectWidget(t *testing.T) {
 	}
 }
 
+func TestGather_ExtraCommandPopulatesExtraOutput(t *testing.T) {
+	// Configure a command that prints valid JSON with a label field.
+	input := minimalInput()
+	cfg := cfgWithWidgets("model")
+	cfg.Extra.Command = `echo '{"label": "custom-label"}'`
+
+	ctx := Gather(input, cfg)
+
+	if ctx.ExtraOutput != "custom-label" {
+		t.Errorf("ExtraOutput: got %q, want %q", ctx.ExtraOutput, "custom-label")
+	}
+}
+
+func TestGather_ExtraOutputEmptyWhenCommandUnset(t *testing.T) {
+	input := minimalInput()
+	cfg := cfgWithWidgets("model")
+	// cfg.Extra.Command is zero value — no goroutine should run.
+
+	ctx := Gather(input, cfg)
+
+	if ctx.ExtraOutput != "" {
+		t.Errorf("ExtraOutput: expected empty when command unset, got %q", ctx.ExtraOutput)
+	}
+}
+
+func TestGather_ExtraOutputEmptyWhenCommandFails(t *testing.T) {
+	input := minimalInput()
+	cfg := cfgWithWidgets("model")
+	cfg.Extra.Command = "exit 1"
+
+	ctx := Gather(input, cfg)
+
+	if ctx.ExtraOutput != "" {
+		t.Errorf("ExtraOutput: expected empty when command fails, got %q", ctx.ExtraOutput)
+	}
+}
+
 func TestGather_NilModelAndContextWindow(t *testing.T) {
 	// Ensure Gather doesn't panic when optional StdinData fields are nil.
 	input := &model.StdinData{

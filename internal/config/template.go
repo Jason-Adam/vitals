@@ -159,6 +159,9 @@ cost_critical = 10.00
 
 [extra]
 # Uncomment to run a shell command and append its output to the statusline.
+# The command must print a JSON object with a "label" field: {"label": "my text"}
+# ANSI SGR color codes in the label are preserved; other escape sequences are stripped.
+# The command is run with a 3-second timeout; empty string or errors produce no output.
 # command = "my-custom-command"
 `
 

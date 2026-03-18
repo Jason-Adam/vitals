@@ -81,6 +81,12 @@ type Config struct {
 		Overrides map[string]theme.WidgetColors `toml:"overrides"`
 	} `toml:"theme"`
 
+	// Extra holds user-configured extra command settings. When Command is set,
+	// the gather stage runs it and stores the result in RenderContext.ExtraOutput.
+	Extra struct {
+		Command string `toml:"command"`
+	} `toml:"extra"`
+
 	// ResolvedTheme is the effective per-widget color map after merging the
 	// selected built-in theme with any custom [theme.overrides].
 	// Populated by resolveTheme() during LoadHud. Not read from TOML directly.
