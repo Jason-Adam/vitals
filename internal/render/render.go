@@ -30,12 +30,6 @@ const ansiReset = "\x1b[0m"
 // available space and produce output that is less useful than the raw text.
 const minTruncateWidth = 20
 
-// defaultTerminalWidth is used when width detection returns 0 (e.g. when all
-// fds are pipes and /dev/tty is unavailable). 80 is the classic terminal
-// width and a safe conservative fallback — wider lines get truncated, which
-// is better than wrapping (wrapping causes Claude Code to hide the HUD).
-const defaultTerminalWidth = 80
-
 // Powerline characters (Nerd Font private-use area).
 const (
 	// powerlineArrow is U+E0B0 — the right-pointing filled triangle used as a
@@ -284,15 +278,11 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 			continue
 		}
 
-		// Use a defensive fallback when width detection fails (returns 0).
-		// Skipping truncation entirely risks lines wrapping, which causes
-		// Claude Code to hide the whole HUD.
-		effectiveWidth := ctx.TerminalWidth
-		if effectiveWidth == 0 {
-			effectiveWidth = defaultTerminalWidth
-		}
-		if effectiveWidth >= minTruncateWidth {
-			output = ansi.Truncate(output, effectiveWidth, truncateSuffix)
+		// Truncate only when the terminal width is known. When width
+		// detection fails (returns 0), output the raw line and let Claude
+		// Code handle it — matching claude-hud's behavior.
+		if ctx.TerminalWidth >= minTruncateWidth {
+			output = ansi.Truncate(output, ctx.TerminalWidth, truncateSuffix)
 		}
 
 		// Prepend reset so our colors aren't affected by Claude Code's dim styling.
