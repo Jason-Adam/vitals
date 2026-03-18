@@ -309,10 +309,11 @@ func mustCwd() string {
 
 // bgCacheFile is where the detected background mode is cached between invocations.
 // The statusline runs every ~300ms; querying the terminal each time causes race
-// conditions (overlapping OSC 11 responses). Detect once, cache for 5 minutes.
+// conditions (overlapping OSC 11 responses). A short TTL prevents races while
+// still picking up theme changes within seconds.
 var bgCacheFile = filepath.Join(model.PluginDir(), "bg-mode")
 
-const bgCacheTTL = 5 * time.Minute
+const bgCacheTTL = 5 * time.Second
 
 // detectLightBackground returns true if the terminal has a light background.
 // Results are cached to disk so the expensive /dev/tty query only runs once
