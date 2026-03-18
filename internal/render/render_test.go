@@ -101,8 +101,10 @@ func TestRender_TruncatesLongLines(t *testing.T) {
 	}
 }
 
-func TestRender_NoTruncationWhenWidthZero(t *testing.T) {
-	// When TerminalWidth is 0, output should not be truncated regardless of length.
+func TestRender_FallbackWidthWhenWidthZero(t *testing.T) {
+	// When TerminalWidth is 0, the render stage uses defaultTerminalWidth (120)
+	// as a fallback rather than skipping truncation. A line longer than 120
+	// columns must be truncated to prevent Claude Code from hiding the HUD.
 	longName := strings.Repeat("Y", 200)
 	ctx := &model.RenderContext{
 		ModelDisplayName: longName,
@@ -117,8 +119,14 @@ func TestRender_NoTruncationWhenWidthZero(t *testing.T) {
 	Render(&buf, ctx, cfg)
 
 	line := strings.TrimRight(buf.String(), "\n")
-	if !strings.Contains(line, longName) {
-		t.Errorf("expected full name in output when no width limit, got %q", line)
+	// Visual width must not exceed the fallback width.
+	w := ansi.StringWidth(line)
+	if w > defaultTerminalWidth {
+		t.Errorf("expected visual width <= %d (fallback), got %d for %q", defaultTerminalWidth, w, line)
+	}
+	// The line must contain the truncation suffix because the name is far longer than 120.
+	if !strings.Contains(line, truncateSuffix) {
+		t.Errorf("expected %q in output truncated to fallback width, got %q", truncateSuffix, line)
 	}
 }
 

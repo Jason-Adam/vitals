@@ -832,6 +832,92 @@ func TestAgentsWidget_MaxFiveTotal(t *testing.T) {
 	}
 }
 
+func TestAgentsWidget_TruncatesWithPlusMoreWhenNarrow(t *testing.T) {
+	// With a narrow terminal width, agents that don't fit should be replaced
+	// with a "+N more" indicator rather than being cut mid-character by the
+	// render-level truncation.
+	agents := []model.AgentEntry{
+		{Name: "agent-alpha", Status: "running", ColorIndex: 0, StartTime: time.Now()},
+		{Name: "agent-beta", Status: "running", ColorIndex: 1, StartTime: time.Now()},
+		{Name: "agent-gamma", Status: "running", ColorIndex: 2, StartTime: time.Now()},
+	}
+	ctx := &model.RenderContext{
+		Transcript:    &model.TranscriptData{Agents: agents},
+		TerminalWidth: 40, // narrow enough that 3 agents don't fit
+	}
+	cfg := defaultCfg()
+	cfg.Style.Icons = "ascii"
+
+	got := Agents(ctx, cfg)
+
+	// The plain text must contain "+N more" since 3 agents can't fit in 40 cols.
+	if !strings.Contains(got.PlainText, "more") {
+		t.Errorf("expected '+N more' in PlainText for narrow width, got %q", got.PlainText)
+	}
+	// The first agent must still appear.
+	if !strings.Contains(got.PlainText, "agent-alpha") {
+		t.Errorf("expected first agent 'agent-alpha' to remain, got %q", got.PlainText)
+	}
+}
+
+func TestAgentsWidget_NoTruncationWhenWidthZero(t *testing.T) {
+	// When TerminalWidth is 0 (unknown), the widget skips its own truncation
+	// and relies on the render-stage fallback width. All agents must appear.
+	agents := []model.AgentEntry{
+		{Name: "alpha", Status: "running", ColorIndex: 0, StartTime: time.Now()},
+		{Name: "beta", Status: "running", ColorIndex: 1, StartTime: time.Now()},
+		{Name: "gamma", Status: "running", ColorIndex: 2, StartTime: time.Now()},
+	}
+	ctx := &model.RenderContext{
+		Transcript:    &model.TranscriptData{Agents: agents},
+		TerminalWidth: 0,
+	}
+	cfg := defaultCfg()
+	cfg.Style.Icons = "ascii"
+
+	got := Agents(ctx, cfg)
+
+	// All three agents must appear in plain text.
+	for _, name := range []string{"alpha", "beta", "gamma"} {
+		if !strings.Contains(got.PlainText, name) {
+			t.Errorf("expected all agents when width=0, missing %q in %q", name, got.PlainText)
+		}
+	}
+	// No "+N more" should be present since the widget skips truncation at width=0.
+	if strings.Contains(got.PlainText, "more") {
+		t.Errorf("expected no '+N more' when TerminalWidth=0, got %q", got.PlainText)
+	}
+}
+
+func TestTruncateAgentEntries_AllFit(t *testing.T) {
+	styled := []string{"A", "B"}
+	plain := []string{"A", "B"}
+	outStyled, outPlain := truncateAgentEntries(styled, plain, 200)
+	if len(outPlain) != 2 || outPlain[0] != "A" || outPlain[1] != "B" {
+		t.Errorf("all-fit: expected [A B], got %v", outPlain)
+	}
+	_ = outStyled
+}
+
+func TestTruncateAgentEntries_OneDropped(t *testing.T) {
+	// Width must accommodate "agent-alpha 1m30s | +1 more" (28 chars)
+	// plus the 8-column renderer overhead, so maxWidth=40 gives available=32.
+	plain := []string{"agent-alpha 1m30s", "agent-beta 0m45s"}
+	styled := plain // use same for simplicity
+	outStyled, outPlain := truncateAgentEntries(styled, plain, 40)
+	// Must have exactly 2 elements: first entry + "+1 more"
+	if len(outPlain) != 2 {
+		t.Errorf("expected 2 output elements (1 entry + indicator), got %d: %v", len(outPlain), outPlain)
+	}
+	if outPlain[0] != "agent-alpha 1m30s" {
+		t.Errorf("expected first entry preserved, got %q", outPlain[0])
+	}
+	if outPlain[1] != "+1 more" {
+		t.Errorf("expected '+1 more', got %q", outPlain[1])
+	}
+	_ = outStyled
+}
+
 // -- Todos widget -------------------------------------------------------------
 
 func TestTodosWidget_EmptyTodosReturnsEmpty(t *testing.T) {
