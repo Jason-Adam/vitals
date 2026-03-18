@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
@@ -933,5 +934,126 @@ func TestRender_ColorLevelWiresLipglossProfile(t *testing.T) {
 					tc.colorLevel, lipgloss.Writer.Profile, tc.want)
 			}
 		})
+	}
+}
+
+// TestRender_ToolsDividerSurvivesPlainMode verifies that the tools widget's
+// internal ANSI styling survives the plain-mode render pipeline.
+//
+// The bug was: applyWidgetStyle re-rendered from PlainText with a flat theme
+// color, destroying per-element styling (yellow highlight separator, dim
+// separators, green icons). Since the tools widget returns FgColor="" (pre-styled),
+// applyWidgetStyle must pass Text through unchanged, preserving internal codes.
+func TestRender_ToolsDividerSurvivesPlainMode(t *testing.T) {
+	ctx := &model.RenderContext{
+		TerminalWidth: 200,
+		Transcript: &model.TranscriptData{
+			Tools: []model.ToolEntry{
+				{Name: "Read", Completed: true, DurationMs: 500, Category: "file"},
+				{Name: "Write", Completed: true, DurationMs: 1200, Category: "file"},
+				{Name: "Bash", Completed: true, DurationMs: 3000, Category: "shell"},
+			},
+			DividerOffset: 1,
+		},
+	}
+
+	cfg := config.LoadHud()
+	cfg.Lines = []config.Line{
+		{Widgets: []string{"tools"}},
+	}
+	cfg.Style.Mode = "plain"
+
+	var buf bytes.Buffer
+	Render(&buf, ctx, cfg)
+	out := buf.String()
+
+	// The output must contain ANSI color 33 (yellow) for the highlighted separator.
+	// yellowStyle uses lipgloss.Color("3") which emits "[33m" in an ANSI terminal.
+	if !strings.Contains(out, "[33m") && !strings.Contains(out, ";33m") {
+		t.Errorf("expected yellow (ANSI 33) highlight separator in output, got %q", out)
+	}
+
+	// The output must also contain the faint/dim attribute ("[2m" or "[2;")
+	// for the non-highlighted separators.
+	if !strings.Contains(out, "[2m") && !strings.Contains(out, "[2;") {
+		t.Errorf("expected dim/faint separator in output, got %q", out)
+	}
+
+	// Count distinct ANSI escape sequences -- there should be more than 4
+	// (one open + one reset would indicate flat coloring from re-rendering PlainText).
+	ansiCount := strings.Count(out, "[")
+	if ansiCount <= 4 {
+		t.Errorf("expected multiple distinct ANSI codes (got %d), output may be flat-colored: %q", ansiCount, out)
+	}
+}
+
+// TestRender_CompletedAgentWithDurationVisible verifies that a completed agent
+// with DurationMs >= 1000 appears in rendered output.
+//
+// The bug was: agents had DurationMs of 3-10ms (from the transcript extractor)
+// and were filtered out by the >= 1000 threshold. Agents discovered from the
+// filesystem now carry real durations (5-60s) and must pass the filter.
+func TestRender_CompletedAgentWithDurationVisible(t *testing.T) {
+	ctx := &model.RenderContext{
+		TerminalWidth: 200,
+		Transcript: &model.TranscriptData{
+			Agents: []model.AgentEntry{
+				{
+					Name:       "Explore",
+					Status:     "completed",
+					DurationMs: 15000, // 15 seconds -- passes the >= 1000 filter
+					StartTime:  time.Now().Add(-15 * time.Second),
+					ColorIndex: 0,
+				},
+			},
+		},
+	}
+
+	cfg := &config.Config{}
+	cfg.Lines = []config.Line{
+		{Widgets: []string{"agents"}},
+	}
+
+	var buf bytes.Buffer
+	Render(&buf, ctx, cfg)
+	out := buf.String()
+
+	if !strings.Contains(out, "Explore") {
+		t.Errorf("expected completed agent 'Explore' with DurationMs=15000 to appear, got %q", out)
+	}
+}
+
+// TestRender_CompletedAgentWithLowDurationHidden verifies that completed agents
+// with DurationMs < 1000 do not appear in rendered output.
+//
+// Sub-second agents are noise -- they completed before the user could notice
+// them. The agents widget filters them at the >= 1000 threshold.
+func TestRender_CompletedAgentWithLowDurationHidden(t *testing.T) {
+	ctx := &model.RenderContext{
+		TerminalWidth: 200,
+		Transcript: &model.TranscriptData{
+			Agents: []model.AgentEntry{
+				{
+					Name:       "Ghost",
+					Status:     "completed",
+					DurationMs: 6, // 6ms -- filtered out
+					StartTime:  time.Now().Add(-6 * time.Millisecond),
+					ColorIndex: 0,
+				},
+			},
+		},
+	}
+
+	cfg := &config.Config{}
+	cfg.Lines = []config.Line{
+		{Widgets: []string{"agents"}},
+	}
+
+	var buf bytes.Buffer
+	Render(&buf, ctx, cfg)
+	out := buf.String()
+
+	if strings.Contains(out, "Ghost") {
+		t.Errorf("expected agent 'Ghost' with DurationMs=6 to be hidden, but found in %q", out)
 	}
 }
