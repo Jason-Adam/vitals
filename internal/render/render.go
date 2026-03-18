@@ -271,36 +271,24 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 	}
 }
 
-// applyWidgetStyle converts a WidgetResult to a styled string, incorporating
-// theme colors from the resolved config theme map.
+// applyWidgetStyle converts a WidgetResult to a styled string for plain mode.
+// Theme background colors are NOT applied — those exist for powerline segments.
+// Plain mode uses transparent backgrounds so text sits naturally on the terminal.
 //
-// Color precedence (highest to lowest):
-//  1. WidgetResult.FgColor / WidgetResult.BgColor — explicit per-render override
-//  2. cfg.ResolvedTheme[widgetName].Fg / .Bg — theme default for this widget
-//  3. Widget's own pre-styled ANSI output (FgColor == "" and no theme bg)
-//
-// When FgColor is empty the Text is returned as-is (the widget pre-styled it
-// internally), unless a theme BgColor applies in which case the text is wrapped
-// with that background. When FgColor is set, a fresh lipgloss.Style is built
-// from FgColor and the resolved BgColor (widget > theme) and applied to Text.
+// Only explicit widget-level BgColor (from WidgetResult) is honored. Theme fg
+// is applied when the widget provides a structured FgColor; pre-styled text
+// (FgColor == "") passes through as-is.
 func applyWidgetStyle(r widget.WidgetResult, widgetName string, cfg *config.Config) string {
-	// Resolve background: widget result takes precedence over theme.
+	// Only use bg when the widget explicitly requests it (not from theme).
 	bgColor := r.BgColor
-	if bgColor == "" {
-		if colors, ok := cfg.ResolvedTheme[widgetName]; ok {
-			bgColor = colors.Bg
-		}
-	}
 
 	if r.FgColor == "" {
-		// Pre-styled output: only apply bg if theme provides one.
 		if bgColor == "" {
 			return r.Text
 		}
 		return lipgloss.NewStyle().Background(lipgloss.Color(bgColor)).Render(r.Text)
 	}
 
-	// Structured output: build full style from fg + resolved bg.
 	style := lipgloss.NewStyle().Foreground(lipgloss.Color(r.FgColor))
 	if bgColor != "" {
 		style = style.Background(lipgloss.Color(bgColor))
