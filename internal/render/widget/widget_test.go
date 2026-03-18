@@ -1101,6 +1101,97 @@ func TestGitWidget_UsesIconLookup(t *testing.T) {
 	}
 }
 
+func TestGitWidget_FileStats_ShowsCounts(t *testing.T) {
+	ctx := &model.RenderContext{Git: &model.GitStatus{
+		Branch:    "main",
+		Modified:  3,
+		Staged:    1,
+		Untracked: 2,
+	}}
+	cfg := defaultCfg()
+	cfg.Git.FileStats = true
+
+	result := Git(ctx, cfg)
+	if !strings.Contains(result.Text, "~3") {
+		t.Errorf("FileStats: expected '~3' in Text, got %q", result.Text)
+	}
+	if !strings.Contains(result.Text, "+1") {
+		t.Errorf("FileStats: expected '+1' in Text, got %q", result.Text)
+	}
+	if !strings.Contains(result.Text, "?2") {
+		t.Errorf("FileStats: expected '?2' in Text, got %q", result.Text)
+	}
+	if !strings.Contains(result.PlainText, "~3") {
+		t.Errorf("FileStats: expected '~3' in PlainText, got %q", result.PlainText)
+	}
+	if !strings.Contains(result.PlainText, "+1") {
+		t.Errorf("FileStats: expected '+1' in PlainText, got %q", result.PlainText)
+	}
+	if !strings.Contains(result.PlainText, "?2") {
+		t.Errorf("FileStats: expected '?2' in PlainText, got %q", result.PlainText)
+	}
+}
+
+func TestGitWidget_FileStats_HidesZeroCounts(t *testing.T) {
+	ctx := &model.RenderContext{Git: &model.GitStatus{
+		Branch:   "main",
+		Modified: 0,
+		Staged:   2,
+	}}
+	cfg := defaultCfg()
+	cfg.Git.FileStats = true
+
+	result := Git(ctx, cfg)
+	if strings.Contains(result.Text, "~") {
+		t.Errorf("FileStats: expected no '~' when Modified=0, got %q", result.Text)
+	}
+	if strings.Contains(result.Text, "?") {
+		t.Errorf("FileStats: expected no '?' when Untracked=0, got %q", result.Text)
+	}
+	if !strings.Contains(result.Text, "+2") {
+		t.Errorf("FileStats: expected '+2' in Text, got %q", result.Text)
+	}
+}
+
+func TestGitWidget_FileStats_DisabledByDefault(t *testing.T) {
+	ctx := &model.RenderContext{Git: &model.GitStatus{
+		Branch:    "main",
+		Modified:  5,
+		Staged:    3,
+		Untracked: 1,
+	}}
+	cfg := defaultCfg()
+	// cfg.Git.FileStats is false by default
+
+	result := Git(ctx, cfg)
+	if strings.Contains(result.Text, "~") || strings.Contains(result.Text, "+") || strings.Contains(result.Text, "?") {
+		t.Errorf("FileStats disabled: expected no stats in Text, got %q", result.Text)
+	}
+}
+
+func TestGitWidget_FileStats_NoStatsWhenAllZero(t *testing.T) {
+	ctx := &model.RenderContext{Git: &model.GitStatus{
+		Branch:    "main",
+		Modified:  0,
+		Staged:    0,
+		Untracked: 0,
+	}}
+	cfg := defaultCfg()
+	cfg.Git.FileStats = true
+
+	result := Git(ctx, cfg)
+	// Should still show branch but no stats separator+content
+	if !strings.Contains(result.Text, "main") {
+		t.Errorf("FileStats: expected 'main' in Text, got %q", result.Text)
+	}
+	// No stats means no space+stats appended beyond branch
+	plain := result.PlainText
+	// Plain text should just be the branch icon + "main" with no trailing stats
+	if strings.Contains(plain, "~") || strings.Contains(plain, "+") || strings.Contains(plain, "?") {
+		t.Errorf("FileStats all-zero: expected no stat chars in PlainText, got %q", plain)
+	}
+}
+
 func TestIconsFor_Modes(t *testing.T) {
 	tests := []struct {
 		mode      string

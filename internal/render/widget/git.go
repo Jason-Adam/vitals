@@ -57,6 +57,31 @@ func Git(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 		}
 	}
 
+	// File stats: modified/staged/untracked counts.
+	if cfg.Git.FileStats {
+		var statParts []string
+		var statPlainParts []string
+		if g.Modified > 0 {
+			s := fmt.Sprintf("~%d", g.Modified)
+			statParts = append(statParts, yellowStyle.Render(s))
+			statPlainParts = append(statPlainParts, s)
+		}
+		if g.Staged > 0 {
+			s := fmt.Sprintf("+%d", g.Staged)
+			statParts = append(statParts, greenStyle.Render(s))
+			statPlainParts = append(statPlainParts, s)
+		}
+		if g.Untracked > 0 {
+			s := fmt.Sprintf("?%d", g.Untracked)
+			statParts = append(statParts, gitDimStyle.Render(s))
+			statPlainParts = append(statPlainParts, s)
+		}
+		if len(statParts) > 0 {
+			parts = append(parts, " "+strings.Join(statParts, ""))
+			plainParts = append(plainParts, " "+strings.Join(statPlainParts, ""))
+		}
+	}
+
 	return WidgetResult{
 		Text:      strings.Join(parts, ""),
 		PlainText: strings.Join(plainParts, ""),
