@@ -2,7 +2,7 @@
 
 ```
 tail-claude-hud [flags]
-  --init           Generate default config file
+  --init           Generate default config and register Claude Code hooks
   --preset NAME    Apply a built-in or custom preset
   --theme NAME     Override color theme
   --list-presets   Print available preset names
@@ -11,6 +11,17 @@ tail-claude-hud [flags]
   --preview PATH   Render from a transcript file with mock stdin data
   --watch          Continuously re-render on transcript changes (with --preview)
 ```
+
+## Hook subcommand
+
+The binary handles Claude Code hook events directly:
+
+```
+tail-claude-hud hook permission-request   # write breadcrumb (PermissionRequest hook)
+tail-claude-hud hook cleanup              # remove breadcrumb (PostToolUse, Stop hooks)
+```
+
+`--init` registers these hooks in `~/.claude/settings.json`. Re-running is idempotent.
 
 ## Notes
 
