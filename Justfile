@@ -3,9 +3,9 @@
 # Default: run tests
 default: test
 
-# Build the binary
+# Build and install the binary to ~/go/bin
 build:
-    go build -o bin/tail-claude-hud ./cmd/tail-claude-hud
+    go install ./cmd/tail-claude-hud
 
 # Run all tests
 test:
@@ -32,7 +32,7 @@ check: fmt vet test
 
 # Render the statusline from the current session's transcript
 dump: build
-    ./bin/tail-claude-hud --dump-current
+    tail-claude-hud --dump-current
 
 # Pipe sample stdin through the binary (no transcript)
 run-sample:
@@ -45,6 +45,7 @@ eval:
 # Clean build artifacts
 clean:
     rm -rf bin/
+    rm -f $(go env GOPATH)/bin/tail-claude-hud
 
 # Bump the version. Usage: just bump patch|minor|major
 bump level:

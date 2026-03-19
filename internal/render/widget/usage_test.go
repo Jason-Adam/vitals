@@ -58,8 +58,9 @@ func TestUsage_RateLimitedShowsSyncing(t *testing.T) {
 	if !strings.Contains(got.PlainText, "syncing") {
 		t.Errorf("expected 'syncing' in output, got %q", got.PlainText)
 	}
-	if !strings.Contains(got.PlainText, "25%") {
-		t.Errorf("expected '25%%' in output, got %q", got.PlainText)
+	// In nerdfont mode, icon replaces percentage text.
+	if got.PlainText == "" {
+		t.Error("expected non-empty PlainText")
 	}
 }
 
@@ -118,11 +119,13 @@ func TestUsage_SevenDayShownAboveThreshold(t *testing.T) {
 	if got.IsEmpty() {
 		t.Fatal("expected non-empty")
 	}
-	if !strings.Contains(got.PlainText, "7d") {
-		t.Errorf("expected '7d' in output, got %q", got.PlainText)
+	// Two windows should produce a separator in the output.
+	if !strings.Contains(got.PlainText, "|") {
+		t.Errorf("expected separator for two windows, got %q", got.PlainText)
 	}
-	if !strings.Contains(got.PlainText, "85%") {
-		t.Errorf("expected '85%%' in output, got %q", got.PlainText)
+	// Second window should have a reset countdown.
+	if !strings.Contains(got.PlainText, "2d") {
+		t.Errorf("expected '2d' reset in output, got %q", got.PlainText)
 	}
 }
 

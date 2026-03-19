@@ -12,18 +12,12 @@ import (
 	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
 )
 
-// usageWarningStyle is used for API errors and limit-reached states.
-var usageWarningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
-
 // Usage renders 5-hour and 7-day rate-limit utilization from the Anthropic
-// OAuth API. Each window shows a circle-fill icon, percentage, and reset
-// countdown.
+// OAuth API.
 //
-// The widget returns empty when:
+// Returns empty when:
 //   - ctx.Usage is nil (no credentials, API user, widget not configured)
 //   - Both windows are below their configured thresholds
-//
-// Display format (nerdfont): "5h 󰪞 25% 1h32m | 7d 󰪣 60% 2d5h"
 func Usage(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Usage == nil {
 		return WidgetResult{}
@@ -31,130 +25,137 @@ func Usage(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 
 	u := ctx.Usage
 
-	// Handle API unavailable state.
+	// API errors (except rate-limited with stale data) get a warning label.
 	if u.APIUnavailable && u.APIError != "rate-limited" {
-		errorHint := formatUsageError(u.APIError)
-		label := "Usage " + errorHint
-		return WidgetResult{
-			Text:      usageWarningStyle.Render(label),
-			PlainText: label,
-			FgColor:   "3", // yellow
-		}
+		return usageError(u.APIError)
 	}
 
-	// Check if either window has hit 100%.
+	// Limit reached: bold critical with reset countdown.
 	if u.FiveHourPercent >= 100 || u.SevenDayPercent >= 100 {
-		return renderLimitReached(u, cfg)
+		return usageLimitReached(u, cfg)
 	}
 
-	// Apply thresholds: hide when both windows are below their threshold.
-	fiveThreshold := cfg.Usage.FiveHourThreshold
-	sevenThreshold := cfg.Usage.SevenDayThreshold
-
+	// Hide when below threshold.
 	effectiveUsage := max(u.FiveHourPercent, u.SevenDayPercent)
-	if effectiveUsage < fiveThreshold {
+	if effectiveUsage < cfg.Usage.FiveHourThreshold {
 		return WidgetResult{}
 	}
 
-	// Build the 5-hour segment.
-	var parts []string
-	var plainParts []string
-	fgColor := ""
-
+	// Assemble visible windows.
+	var windows []usageSegment
 	if u.FiveHourPercent >= 0 {
-		text, plain, fg := renderUsageWindow("5h", u.FiveHourPercent, u.FiveHourResetAt, cfg)
-		parts = append(parts, text)
-		plainParts = append(plainParts, plain)
-		fgColor = fg
+		windows = append(windows, usageWindow("5h", u.FiveHourPercent, u.FiveHourResetAt, cfg))
 	}
-
-	// Append 7-day segment only when it exceeds the threshold.
-	if u.SevenDayPercent >= 0 && u.SevenDayPercent >= sevenThreshold {
-		text, plain, fg := renderUsageWindow("7d", u.SevenDayPercent, u.SevenDayResetAt, cfg)
-		parts = append(parts, text)
-		plainParts = append(plainParts, plain)
-		// Use the more critical color of the two windows.
-		if usageColorPriority(fg) > usageColorPriority(fgColor) {
-			fgColor = fg
-		}
+	if u.SevenDayPercent >= 0 && u.SevenDayPercent >= cfg.Usage.SevenDayThreshold {
+		windows = append(windows, usageWindow("7d", u.SevenDayPercent, u.SevenDayResetAt, cfg))
 	}
-
-	if len(parts) == 0 {
+	if len(windows) == 0 {
 		return WidgetResult{}
 	}
 
-	// Append syncing hint when rate-limited but showing stale data.
-	syncingSuffix := ""
-	if u.APIError == "rate-limited" {
-		syncingSuffix = " " + DimStyle.Render("(syncing...)")
-	}
-
-	separator := DimStyle.Render(" | ")
-	text := strings.Join(parts, separator) + syncingSuffix
-	plainText := strings.Join(plainParts, " | ")
-	if u.APIError == "rate-limited" {
-		plainText += " (syncing...)"
-	}
-
-	return WidgetResult{
-		Text:      text,
-		PlainText: plainText,
-		FgColor:   fgColor,
-	}
+	// Join windows, append syncing hint, pick highest-severity color.
+	return usageJoin(windows, u.APIError == "rate-limited")
 }
 
-// renderUsageWindow renders a single usage window (5h or 7d).
-// Returns the styled text, plain text, and foreground color.
-func renderUsageWindow(label string, pct int, resetAt time.Time, cfg *config.Config) (string, string, string) {
+// ---------------------------------------------------------------------------
+// Segment: the intermediate representation between data and final string.
+// Each helper below produces one segment; the top-level function joins them.
+// ---------------------------------------------------------------------------
+
+// usageSegment holds the styled and plain text for one window, plus its
+// foreground color so the joiner can pick the most urgent.
+type usageSegment struct {
+	text      string
+	plainText string
+	fgColor   string
+}
+
+// ---------------------------------------------------------------------------
+// Window assembly — composes the per-element helpers into a single segment.
+// Change the order of calls here to rearrange the visual layout.
+// ---------------------------------------------------------------------------
+
+func usageWindow(label string, pct int, resetAt time.Time, cfg *config.Config) usageSegment {
+	_ = label // available for re-enabling usageLabel
 	if pct < 0 {
 		pct = 0
 	}
-
-	// Determine threshold color.
 	fg := usageFgColor(pct, cfg)
-	style := lipgloss.NewStyle().Foreground(lipgloss.Color(fg))
+	pctStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(fg))
 
-	// Build: "5h 󰪞 25% 1h32m"
-	var sb strings.Builder
-	var plainSb strings.Builder
+	var styled, plain strings.Builder
 
-	// Label.
-	sb.WriteString(DimStyle.Render(label))
-	plainSb.WriteString(label)
+	append := func(s, p string) { appendPair(&styled, &plain, s, p) }
 
-	// Circle icon (nerdfont only).
+	// 1. Circle-fill icon (nerdfont) or percentage fallback
 	if cfg.Style.Icons == "nerdfont" {
-		icon := percentToIcon(pct)
-		sb.WriteString(" ")
-		sb.WriteString(style.Render(icon))
-		plainSb.WriteString(" ")
-		plainSb.WriteString(icon)
+		append(usageIcon(pct, pctStyle))
+	} else {
+		append(usagePercent(pct, pctStyle))
 	}
 
-	// Percentage.
-	pctStr := fmt.Sprintf(" %d%%", pct)
-	sb.WriteString(style.Render(pctStr))
-	plainSb.WriteString(pctStr)
+	// 2. Reset countdown
+	append(usageReset(resetAt))
 
-	// Reset countdown.
-	if reset := formatResetTime(resetAt); reset != "" {
-		resetStr := " " + reset
-		sb.WriteString(DimStyle.Render(resetStr))
-		plainSb.WriteString(resetStr)
-	}
-
-	return sb.String(), plainSb.String(), fg
+	return usageSegment{text: styled.String(), plainText: plain.String(), fgColor: fg}
 }
 
-// renderLimitReached renders the limit-reached state with reset countdown.
-func renderLimitReached(u *model.UsageInfo, cfg *config.Config) WidgetResult {
-	critFg := "1" // red
+// ---------------------------------------------------------------------------
+// Per-element helpers. Each returns (styled, plain). Return ("", "") to omit.
+// ---------------------------------------------------------------------------
+
+// usageLabel renders the window identifier: "5h" or "7d".
+func usageLabel(label string) (string, string) {
+	return DimStyle.Render(label), label
+}
+
+// usageIcon renders the circle-slice fill icon colored by severity.
+func usageIcon(pct int, style lipgloss.Style) (string, string) {
+	icon := percentToIcon(pct)
+	return style.Render(icon), icon
+}
+
+// usagePercent renders " NN%", colored by severity.
+func usagePercent(pct int, style lipgloss.Style) (string, string) {
+	s := fmt.Sprintf(" %d%%", pct)
+	return style.Render(s), s
+}
+
+// usageReset renders the reset countdown. Returns ("", "") when the reset
+// time is zero or in the past.
+func usageReset(resetAt time.Time) (string, string) {
+	r := formatResetTime(resetAt)
+	if r == "" {
+		return "", ""
+	}
+	s := " (" + r + ")"
+	return DimStyle.Render(s), s
+}
+
+// ---------------------------------------------------------------------------
+// Composite results: error, limit-reached, and multi-window join.
+// ---------------------------------------------------------------------------
+
+// usageError renders the API-unavailable warning state.
+func usageError(apiError string) WidgetResult {
+	hint := formatUsageError(apiError)
+	label := "Usage " + hint
+	style := lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
+	return WidgetResult{
+		Text:      style.Render(label),
+		PlainText: label,
+		FgColor:   "3",
+	}
+}
+
+// usageLimitReached renders bold critical text with a reset countdown.
+func usageLimitReached(u *model.UsageInfo, cfg *config.Config) WidgetResult {
+	critFg := "1"
 	if cfg.Style.Colors.Critical != "" {
 		critFg = cfg.Style.Colors.Critical
 	}
-	critStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(critFg)).Bold(true)
+	style := lipgloss.NewStyle().Foreground(lipgloss.Color(critFg)).Bold(true)
 
-	// Determine which window hit the limit first.
 	var resetAt time.Time
 	if u.FiveHourPercent >= 100 {
 		resetAt = u.FiveHourResetAt
@@ -163,16 +164,55 @@ func renderLimitReached(u *model.UsageInfo, cfg *config.Config) WidgetResult {
 	}
 
 	label := "Limit reached"
-	if reset := formatResetTime(resetAt); reset != "" {
-		label += fmt.Sprintf(" (resets %s)", reset)
+	if r := formatResetTime(resetAt); r != "" {
+		label += fmt.Sprintf(" (resets %s)", r)
 	}
 
-	text := critStyle.Render(label)
 	return WidgetResult{
-		Text:      text,
+		Text:      style.Render(label),
 		PlainText: label,
 		FgColor:   critFg,
 	}
+}
+
+// usageJoin combines multiple window segments with a separator and appends
+// a syncing hint when rate-limited. Picks the highest-severity foreground color.
+func usageJoin(windows []usageSegment, syncing bool) WidgetResult {
+	styledParts := make([]string, len(windows))
+	plainParts := make([]string, len(windows))
+	fgColor := ""
+
+	for i, w := range windows {
+		styledParts[i] = w.text
+		plainParts[i] = w.plainText
+		if usageColorPriority(w.fgColor) > usageColorPriority(fgColor) {
+			fgColor = w.fgColor
+		}
+	}
+
+	text := strings.Join(styledParts, DimStyle.Render(" | "))
+	plain := strings.Join(plainParts, " | ")
+
+	if syncing {
+		text += " " + DimStyle.Render("(syncing...)")
+		plain += " (syncing...)"
+	}
+
+	return WidgetResult{Text: text, PlainText: plain, FgColor: fgColor}
+}
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+
+// appendPair appends a (styled, plain) pair to the respective builders.
+// Skips when both are empty, so element helpers can return ("", "") to omit.
+func appendPair(styled, plain *strings.Builder, s, p string) {
+	if s == "" && p == "" {
+		return
+	}
+	styled.WriteString(s)
+	plain.WriteString(p)
 }
 
 // usageFgColor returns the ANSI foreground color for a usage percentage.
@@ -182,16 +222,16 @@ func usageFgColor(pct int, cfg *config.Config) string {
 		cfg.Style.Colors.Context, cfg.Style.Colors.Warning, cfg.Style.Colors.Critical)
 }
 
-// usageColorPriority returns a numeric priority for color severity
-// so we can pick the most urgent color when combining windows.
+// usageColorPriority returns a numeric priority so the joiner picks the
+// most urgent color when combining windows.
 func usageColorPriority(fg string) int {
 	switch fg {
-	case "1": // red / critical
-		return 3
-	case "3": // yellow / warning
-		return 2
-	default: // green / normal
-		return 1
+	case "1":
+		return 3 // red / critical
+	case "3":
+		return 2 // yellow / warning
+	default:
+		return 1 // green / normal
 	}
 }
 
