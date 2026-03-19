@@ -30,20 +30,6 @@ func toolsCtxWithOffset(tools []model.ToolEntry, offset int) *model.RenderContex
 	}
 }
 
-// toolNames returns the tool names visible in the rendered output, in order.
-// It splits on " | " and strips ANSI by searching for the plain name substring.
-// Rather than stripping ANSI codes we just check Contains — order is verified
-// by the position of each name relative to the others in the raw string.
-func toolNamesInOrder(got string) []string {
-	// Split on separator to get per-entry segments.
-	parts := strings.Split(got, " | ")
-	names := make([]string, 0, len(parts))
-	for _, p := range parts {
-		names = append(names, p)
-	}
-	return names
-}
-
 // containsInOrder returns true when all want strings appear in output in the
 // given order (each want appears after the previous one).
 func containsInOrder(output string, want []string) bool {

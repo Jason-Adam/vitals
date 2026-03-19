@@ -2188,8 +2188,8 @@ func TestContextWidget_NerdfontIconPrepended(t *testing.T) {
 	cfg.Style.Icons = "nerdfont"
 
 	got := Context(ctx, cfg)
-	// The 50% icon is circle_slice_5 (U+F0AA2).
-	wantIcon := "\U000F0AA2"
+	// 50% maps to index 3 (44-56% range) → circle_slice_4 (U+F0AA1).
+	wantIcon := "\U000F0AA1"
 	if !strings.Contains(got.Text, wantIcon) {
 		t.Errorf("Context(nerdfont, 50%%): expected circle-slice icon %q in output, got %q", wantIcon, got.Text)
 	}
