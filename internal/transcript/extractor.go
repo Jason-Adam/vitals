@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 // maxTools is the maximum number of ToolEntries kept in the display slice.

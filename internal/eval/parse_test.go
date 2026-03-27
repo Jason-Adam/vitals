@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/render"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/model"
+	"github.com/Jason-Adam/vitals/internal/render"
 )
 
 func TestParseSimpleColor(t *testing.T) {

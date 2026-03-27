@@ -91,12 +91,12 @@ func TestDefaultsWhenNoFile(t *testing.T) {
 }
 
 // TestLoadFromXDGPath verifies that LoadHud reads a config.toml from
-// ~/.config/tail-claude-hud/ and overlays it on defaults (spec 2).
+// ~/.config/vitals/ and overlays it on defaults (spec 2).
 func TestLoadFromXDGPath(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".config", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -134,12 +134,12 @@ icons = "unicode"
 }
 
 // TestLegacyPluginPath verifies that LoadHud falls back to the
-// ~/.claude/plugins/tail-claude-hud/ path when the XDG dir is absent.
+// ~/.claude/plugins/vitals/ path when the XDG dir is absent.
 func TestLegacyPluginPath(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".claude", "plugins", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".claude", "plugins", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -170,8 +170,8 @@ func TestXDGPreferredOverLegacy(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	xdgDir := filepath.Join(tmp, ".config", "tail-claude-hud")
-	legacyDir := filepath.Join(tmp, ".claude", "plugins", "tail-claude-hud")
+	xdgDir := filepath.Join(tmp, ".config", "vitals")
+	legacyDir := filepath.Join(tmp, ".claude", "plugins", "vitals")
 
 	for _, dir := range []string{xdgDir, legacyDir} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -198,7 +198,7 @@ func TestPartialOverlayPreservesDefaults(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".config", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -239,7 +239,7 @@ func TestInvalidTOMLFallsBackToDefaults(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".config", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -334,7 +334,7 @@ func TestThemeSelectionViaConfig(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".config", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -362,7 +362,7 @@ func TestThemeCustomOverridesMerge(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".config", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -399,7 +399,7 @@ func TestUnknownThemeFallsBackToDefault(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".config", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -426,7 +426,7 @@ func TestThemeOverride_noOverrideUsesThemeDefaults(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".config", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -457,7 +457,7 @@ func TestThemeOverride_fgOnly(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".config", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -484,7 +484,7 @@ func TestThemeOverride_bgOnly(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".config", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -510,7 +510,7 @@ func TestThemeOverride_bothFgAndBg(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".config", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -551,7 +551,7 @@ func TestThemeOverride_colorFormats(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "tail-claude-hud")
+	dir := filepath.Join(tmp, ".config", "vitals")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}

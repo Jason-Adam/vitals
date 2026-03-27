@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 // writeSubagentFile creates a minimal subagent JSONL file with the given

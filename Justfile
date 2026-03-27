@@ -1,11 +1,11 @@
-# tail-claude-hud
+# vitals
 
 # Default: run tests
 default: test
 
 # Build and install the binary to ~/go/bin
 build:
-    go install ./cmd/tail-claude-hud
+    go install ./cmd/vitals
 
 # Run all tests
 test:
@@ -32,11 +32,11 @@ check: fmt vet test
 
 # Render the statusline from the current session's transcript
 dump: build
-    tail-claude-hud --dump-current
+    vitals --dump-current
 
 # Pipe sample stdin through the binary (no transcript)
 run-sample:
-    cat testdata/sample-stdin.json | go run ./cmd/tail-claude-hud
+    cat testdata/sample-stdin.json | go run ./cmd/vitals
 
 # Run design evaluation
 eval:
@@ -45,7 +45,7 @@ eval:
 # Clean build artifacts
 clean:
     rm -rf bin/
-    rm -f $(go env GOPATH)/bin/tail-claude-hud
+    rm -f $(go env GOPATH)/bin/vitals
 
 # Bump the version. Usage: just bump patch|minor|major
 bump level:
@@ -112,7 +112,7 @@ release notes="":
     # Prime the Go module proxy so `go install ...@latest` resolves immediately.
     # Uses the /lookup endpoint which only needs the tag to exist on GitHub —
     # no local auth required.
-    curl -sf "https://proxy.golang.org/github.com/kylesnowschwartz/tail-claude-hud/@v/${tag}.info" > /dev/null || true
-    curl -sf "https://proxy.golang.org/github.com/kylesnowschwartz/tail-claude-hud/@latest" > /dev/null || true
+    curl -sf "https://proxy.golang.org/github.com/Jason-Adam/vitals/@v/${tag}.info" > /dev/null || true
+    curl -sf "https://proxy.golang.org/github.com/Jason-Adam/vitals/@latest" > /dev/null || true
 
     echo "Released $tag"

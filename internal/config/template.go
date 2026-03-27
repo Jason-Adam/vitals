@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/setup"
+	"github.com/Jason-Adam/vitals/internal/setup"
 )
 
 // DefaultTemplate is the default config.toml content written by --init.
 // It is valid TOML that LoadHud can parse without error.
-const DefaultTemplate = `# tail-claude-hud configuration
-# Run 'tail-claude-hud --init' to regenerate this file.
+const DefaultTemplate = `# vitals configuration
+# Run 'vitals --init' to regenerate this file.
 
 # Status line layout — each [[line]] entry is a rendered row of widgets.
 # Widgets are rendered left-to-right in the order listed.
@@ -163,7 +163,7 @@ cost_critical = 10.00
 # [theme.overrides]
 
 # Permission widget — shows when another Claude session is waiting for approval.
-# Requires hooks registered via 'tail-claude-hud --init'.
+# Requires hooks registered via 'vitals --init'.
 [permission]
 # Show the project name of the waiting session next to the icon.
 # When false, only the icon is shown.
@@ -199,7 +199,7 @@ func Init() error {
 		return fmt.Errorf("resolve home directory: %w", err)
 	}
 
-	target := filepath.Join(home, ".config", "tail-claude-hud", "config.toml")
+	target := filepath.Join(home, ".config", "vitals", "config.toml")
 
 	if _, err := os.Stat(target); err == nil {
 		fmt.Printf("Config already exists at %s\n", target)

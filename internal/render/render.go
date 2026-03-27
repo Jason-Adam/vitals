@@ -9,12 +9,12 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/color"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/logging"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/render/widget"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/theme"
+	"github.com/Jason-Adam/vitals/internal/color"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/logging"
+	"github.com/Jason-Adam/vitals/internal/model"
+	"github.com/Jason-Adam/vitals/internal/render/widget"
+	"github.com/Jason-Adam/vitals/internal/theme"
 )
 
 // truncateSuffix is appended when a line is truncated to fit terminal width.

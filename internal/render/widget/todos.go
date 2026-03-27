@@ -3,8 +3,8 @@ package widget
 import (
 	"fmt"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 // Todos renders a completed/total count for the todo list.

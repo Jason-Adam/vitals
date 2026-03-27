@@ -3,8 +3,8 @@ package widget
 import (
 	"fmt"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 // Cost renders the session cost as a dollar amount. The color shifts from the

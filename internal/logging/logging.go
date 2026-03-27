@@ -1,7 +1,7 @@
 // Package logging provides a debug file logger gated behind an environment variable.
 //
 // Set TAIL_CLAUDE_HUD_DEBUG=1 to enable logging. All output goes to
-// ~/.claude/plugins/tail-claude-hud/debug.log. Nothing is ever written to
+// ~/.claude/plugins/vitals/debug.log. Nothing is ever written to
 // stderr — writing to stderr corrupts Claude Code's terminal layout because
 // Claude Code uses the terminal directly and does not separate stderr from the
 // display output.
@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 var (

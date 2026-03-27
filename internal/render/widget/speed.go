@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 // Speed renders a rolling tokens/sec average from transcript token samples.

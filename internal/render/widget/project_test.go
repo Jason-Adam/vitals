@@ -4,12 +4,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 func TestProjectWidget_MergedOutputWithDirtyRepo(t *testing.T) {
 	ctx := &model.RenderContext{
-		Cwd: "/Users/kyle/Code/tail-claude-hud",
+		Cwd: "/Users/kyle/Code/vitals",
 		Git: &model.GitStatus{Branch: "main", Dirty: true},
 	}
 	cfg := defaultCfg()
@@ -17,8 +17,8 @@ func TestProjectWidget_MergedOutputWithDirtyRepo(t *testing.T) {
 
 	got := Project(ctx, cfg).Text
 
-	if !strings.Contains(got, "tail-claude-hud") {
-		t.Errorf("expected directory 'tail-claude-hud' in output, got %q", got)
+	if !strings.Contains(got, "vitals") {
+		t.Errorf("expected directory 'vitals' in output, got %q", got)
 	}
 	if !strings.Contains(got, "main") {
 		t.Errorf("expected branch 'main' in output, got %q", got)
@@ -30,7 +30,7 @@ func TestProjectWidget_MergedOutputWithDirtyRepo(t *testing.T) {
 
 func TestProjectWidget_DirectoryOnlyWhenGitNil(t *testing.T) {
 	ctx := &model.RenderContext{
-		Cwd: "/Users/kyle/Code/tail-claude-hud",
+		Cwd: "/Users/kyle/Code/vitals",
 		Git: nil,
 	}
 	cfg := defaultCfg()
@@ -38,8 +38,8 @@ func TestProjectWidget_DirectoryOnlyWhenGitNil(t *testing.T) {
 
 	got := Project(ctx, cfg).Text
 
-	if !strings.Contains(got, "tail-claude-hud") {
-		t.Errorf("expected directory 'tail-claude-hud' in output, got %q", got)
+	if !strings.Contains(got, "vitals") {
+		t.Errorf("expected directory 'vitals' in output, got %q", got)
 	}
 	// No branch should appear.
 	if strings.Contains(got, "main") {
@@ -61,7 +61,7 @@ func TestProjectWidget_EmptyCwdReturnsEmpty(t *testing.T) {
 
 func TestProjectWidget_AheadBehindShownWhenNonzero(t *testing.T) {
 	ctx := &model.RenderContext{
-		Cwd: "/Users/kyle/Code/tail-claude-hud",
+		Cwd: "/Users/kyle/Code/vitals",
 		Git: &model.GitStatus{Branch: "feat/auth", AheadBy: 2, BehindBy: 1},
 	}
 	cfg := defaultCfg()
@@ -82,7 +82,7 @@ func TestProjectWidget_AheadBehindShownWhenNonzero(t *testing.T) {
 
 func TestProjectWidget_ZeroAheadBehindNotShown(t *testing.T) {
 	ctx := &model.RenderContext{
-		Cwd: "/Users/kyle/Code/tail-claude-hud",
+		Cwd: "/Users/kyle/Code/vitals",
 		Git: &model.GitStatus{Branch: "main", AheadBy: 0, BehindBy: 0},
 	}
 	cfg := defaultCfg()
@@ -100,7 +100,7 @@ func TestProjectWidget_ZeroAheadBehindNotShown(t *testing.T) {
 
 func TestProjectWidget_CleanRepoNoDirtyIndicator(t *testing.T) {
 	ctx := &model.RenderContext{
-		Cwd: "/Users/kyle/Code/tail-claude-hud",
+		Cwd: "/Users/kyle/Code/vitals",
 		Git: &model.GitStatus{Branch: "main", Dirty: false},
 	}
 	cfg := defaultCfg()
@@ -115,7 +115,7 @@ func TestProjectWidget_CleanRepoNoDirtyIndicator(t *testing.T) {
 
 func TestProjectWidget_MultipleSegments(t *testing.T) {
 	ctx := &model.RenderContext{
-		Cwd: "/Users/kyle/Code/my-projects/tail-claude-hud",
+		Cwd: "/Users/kyle/Code/my-projects/vitals",
 		Git: &model.GitStatus{Branch: "main"},
 	}
 	cfg := defaultCfg()
@@ -123,8 +123,8 @@ func TestProjectWidget_MultipleSegments(t *testing.T) {
 
 	got := Project(ctx, cfg).Text
 
-	if !strings.Contains(got, "my-projects/tail-claude-hud") {
-		t.Errorf("expected 2-segment path 'my-projects/tail-claude-hud', got %q", got)
+	if !strings.Contains(got, "my-projects/vitals") {
+		t.Errorf("expected 2-segment path 'my-projects/vitals', got %q", got)
 	}
 }
 

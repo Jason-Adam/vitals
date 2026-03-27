@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
+	"github.com/Jason-Adam/vitals/internal/config"
 )
 
 // presetFile mirrors the TOML schema for a preset file. Only preset-relevant
@@ -34,13 +34,13 @@ type presetDir struct {
 }
 
 // CustomPresetDir returns the directory where custom preset TOML files are
-// stored: ~/.config/tail-claude-hud/presets/.
+// stored: ~/.config/vitals/presets/.
 func CustomPresetDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		home = "~"
 	}
-	return filepath.Join(home, ".config", "tail-claude-hud", "presets")
+	return filepath.Join(home, ".config", "vitals", "presets")
 }
 
 // LoadFromFile parses a TOML preset file at path and returns a Preset. The

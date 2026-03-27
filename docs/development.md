@@ -6,7 +6,7 @@ Requires Go 1.25+ and [just](https://github.com/casey/just) for task running.
 
 ```bash
 just              # run tests
-just build        # go build -o bin/tail-claude-hud ./cmd/tail-claude-hud
+just build        # go build -o bin/vitals ./cmd/vitals
 just test         # go test ./... -count=1
 just test-race    # race detector
 just bench        # benchmarks

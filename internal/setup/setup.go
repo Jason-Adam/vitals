@@ -2,7 +2,7 @@
 //
 // The --init flag calls RegisterHooks() after writing the TOML config.
 // It patches ~/.claude/settings.json to register PermissionRequest, PostToolUse,
-// and Stop hooks that invoke "tail-claude-hud hook <event>".
+// and Stop hooks that invoke "vitals hook <event>".
 //
 // Registration is idempotent: existing hooks with the same command are skipped.
 package setup
@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 )
 
-const binaryName = "tail-claude-hud"
+const binaryName = "vitals"
 
 // hookSpec defines one hook event and the subcommand it invokes.
 type hookSpec struct {

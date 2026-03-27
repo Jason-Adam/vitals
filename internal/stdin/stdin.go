@@ -9,11 +9,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 // snapshotDir is the directory where the last-stdin snapshot is persisted.
-// Same location as transcript state files: ~/.claude/plugins/tail-claude-hud/
+// Same location as transcript state files: ~/.claude/plugins/vitals/
 var snapshotDir = defaultSnapshotDir()
 
 const snapshotFile = "last-stdin.json"

@@ -3,7 +3,7 @@ package stdin
 import (
 	"os"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 // MockStdinData returns a realistic StdinData suitable for preview rendering.

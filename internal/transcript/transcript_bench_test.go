@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/transcript"
+	"github.com/Jason-Adam/vitals/internal/transcript"
 )
 
 // syntheticEntry returns a realistic JSONL line for entry i.

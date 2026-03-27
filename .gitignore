@@ -1,6 +1,6 @@
 # Build output
 bin/
-/tail-claude-hud
+/vitals
 
 # Agent artifacts
 .agent-history

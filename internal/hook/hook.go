@@ -1,5 +1,5 @@
 // Package hook handles Claude Code hook events dispatched via the CLI
-// subcommand "tail-claude-hud hook <event>".
+// subcommand "vitals hook <event>".
 //
 // Each handler reads JSON from stdin (the hook payload), performs a breadcrumb
 // operation, and exits. Handlers always succeed (exit 0) because a hook failure
@@ -11,7 +11,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/breadcrumb"
+	"github.com/Jason-Adam/vitals/internal/breadcrumb"
 )
 
 // payload is the common subset of fields from Claude Code's hook stdin JSON.

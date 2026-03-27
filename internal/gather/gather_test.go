@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 // minimalInput returns a StdinData with required scalar fields set.
@@ -429,7 +429,7 @@ func TestGather_GitSpawnedForProjectWidget(t *testing.T) {
 	// the cwd is inside a real git repository.
 	input := minimalInput()
 	// Use a real directory that is inside a git repo so git.GetStatus returns data.
-	input.Cwd = "/Users/kyle/Code/my-projects/tail-claude-hud"
+	input.Cwd = "/Users/kyle/Code/my-projects/vitals"
 	cfg := cfgWithWidgets("project") // "git" widget NOT listed
 
 	ctx := Gather(input, cfg)

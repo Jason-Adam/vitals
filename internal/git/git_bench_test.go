@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/git"
+	"github.com/Jason-Adam/vitals/internal/git"
 )
 
 // BenchmarkGetStatus_GitRepo measures the wall-clock cost of git.GetStatus

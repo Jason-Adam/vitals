@@ -3,8 +3,8 @@ package widget
 import (
 	"fmt"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 // Thinking renders a peripheral signal for active or completed thinking blocks.

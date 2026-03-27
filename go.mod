@@ -1,4 +1,4 @@
-module github.com/kylesnowschwartz/tail-claude-hud
+module github.com/Jason-Adam/vitals
 
 go 1.25.5
 

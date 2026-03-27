@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 // toolsCtx is a helper that builds a RenderContext with a given tools slice.

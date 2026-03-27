@@ -42,7 +42,7 @@ func TestInitCreatesFile(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Override home dir by setting up the path manually via a test-local Init.
-	target := filepath.Join(tmpDir, ".config", "tail-claude-hud", "config.toml")
+	target := filepath.Join(tmpDir, ".config", "vitals", "config.toml")
 
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		t.Fatalf("setup: %v", err)
@@ -64,7 +64,7 @@ func TestInitCreatesFile(t *testing.T) {
 // config file but still succeeds (hook registration proceeds).
 func TestInitSkipsConfigWhenExists(t *testing.T) {
 	tmpHome := t.TempDir()
-	target := filepath.Join(tmpHome, ".config", "tail-claude-hud", "config.toml")
+	target := filepath.Join(tmpHome, ".config", "vitals", "config.toml")
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		t.Fatalf("setup mkdir: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestInitWritesFile(t *testing.T) {
 		t.Fatalf("Init() returned unexpected error: %v", err)
 	}
 
-	target := filepath.Join(tmpHome, ".config", "tail-claude-hud", "config.toml")
+	target := filepath.Join(tmpHome, ".config", "vitals", "config.toml")
 	data, err := os.ReadFile(target)
 	if err != nil {
 		t.Fatalf("config file not created: %v", err)

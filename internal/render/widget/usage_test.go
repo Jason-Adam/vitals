@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 func TestUsage_NilUsageReturnsEmpty(t *testing.T) {

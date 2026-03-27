@@ -15,19 +15,19 @@ import (
 	"time"
 
 	"charm.land/lipgloss/v2"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/gather"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/hook"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/preset"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/render"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/stdin"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/version"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/gather"
+	"github.com/Jason-Adam/vitals/internal/hook"
+	"github.com/Jason-Adam/vitals/internal/model"
+	"github.com/Jason-Adam/vitals/internal/preset"
+	"github.com/Jason-Adam/vitals/internal/render"
+	"github.com/Jason-Adam/vitals/internal/stdin"
+	"github.com/Jason-Adam/vitals/internal/version"
 	"github.com/lucasb-eyer/go-colorful"
 )
 
 // installPath is the go install target for the update command.
-const installPath = "github.com/kylesnowschwartz/tail-claude-hud/cmd/tail-claude-hud@latest"
+const installPath = "github.com/Jason-Adam/vitals/cmd/vitals@latest"
 
 func main() {
 	// Subcommands are dispatched before flag.Parse() so they don't interfere
@@ -49,7 +49,7 @@ func main() {
 	flag.Usage = usage
 	dumpCurrent := flag.Bool("dump-current", false, "render the statusline from a transcript file instead of stdin")
 	dumpRaw := flag.Bool("dump-raw", false, "like --dump-current but print ANSI escape sequences as visible text for debugging")
-	initConfig := flag.Bool("init", false, "generate a default config file at ~/.config/tail-claude-hud/config.toml")
+	initConfig := flag.Bool("init", false, "generate a default config file at ~/.config/vitals/config.toml")
 	listPresets := flag.Bool("list-presets", false, "print available preset names and exit")
 	previewPath := flag.String("preview", "", "render statusline from a transcript file using mock stdin data")
 	presetName := flag.String("preset", "", "apply a named preset or TOML file path")
@@ -69,13 +69,13 @@ func main() {
 	}
 
 	if *watch && *previewPath == "" {
-		fmt.Fprintf(os.Stderr, "tail-claude-hud: --watch requires --preview\n")
+		fmt.Fprintf(os.Stderr, "vitals: --watch requires --preview\n")
 		os.Exit(1)
 	}
 
 	if *initConfig {
 		if err := config.Init(); err != nil {
-			fmt.Fprintf(os.Stderr, "tail-claude-hud: %v\n", err)
+			fmt.Fprintf(os.Stderr, "vitals: %v\n", err)
 			os.Exit(1)
 		}
 		return
@@ -87,7 +87,7 @@ func main() {
 	if *presetName != "" {
 		p, err := resolvePreset(*presetName)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "tail-claude-hud: %v\n", err)
+			fmt.Fprintf(os.Stderr, "vitals: %v\n", err)
 			os.Exit(1)
 		}
 		preset.ApplyPreset(cfg, p)
@@ -112,14 +112,14 @@ func main() {
 
 	if *previewPath != "" {
 		if _, err := os.Stat(*previewPath); err != nil {
-			fmt.Fprintf(os.Stderr, "tail-claude-hud: --preview: %v\n", err)
+			fmt.Fprintf(os.Stderr, "vitals: --preview: %v\n", err)
 			os.Exit(1)
 		}
 		input = stdin.MockStdinData(*previewPath)
 	} else if *dumpCurrent {
 		input, err = readFromFile()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "tail-claude-hud: %v\n", err)
+			fmt.Fprintf(os.Stderr, "vitals: %v\n", err)
 			os.Exit(1)
 		}
 	} else {
@@ -130,7 +130,7 @@ func main() {
 	}
 
 	if err != nil || input == nil {
-		fmt.Println("[tail-claude-hud] Initializing...")
+		fmt.Println("[vitals] Initializing...")
 		return
 	}
 
@@ -481,7 +481,7 @@ func runUpdate() {
 	}
 
 	// Run the newly installed binary to get its version.
-	out, err := exec.Command("tail-claude-hud", "version").Output()
+	out, err := exec.Command("vitals", "version").Output()
 	if err != nil {
 		fmt.Println("Updated successfully.")
 		return
@@ -496,7 +496,7 @@ func runUpdate() {
 
 // usage prints help with -- prefixed flags (Go's flag package defaults to single -).
 func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: tail-claude-hud [command] [flags]\n\n")
+	fmt.Fprintf(os.Stderr, "Usage: vitals [command] [flags]\n\n")
 	fmt.Fprintf(os.Stderr, "Commands:\n")
 	fmt.Fprintf(os.Stderr, "  hook <event>    handle a Claude Code hook event\n")
 	fmt.Fprintf(os.Stderr, "  update          install the latest version via go install\n")

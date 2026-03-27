@@ -8,8 +8,8 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 func defaultCfg() *config.Config {
@@ -477,23 +477,23 @@ func TestFormatTokenCount(t *testing.T) {
 }
 
 func TestDirectoryWidget_SingleSegment(t *testing.T) {
-	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/tail-claude-hud"}
+	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/vitals"}
 	cfg := defaultCfg()
 	cfg.Directory.Levels = 1
 
 	got := Directory(ctx, cfg).Text
-	if !strings.Contains(got, "tail-claude-hud") {
-		t.Errorf("expected 'tail-claude-hud', got %q", got)
+	if !strings.Contains(got, "vitals") {
+		t.Errorf("expected 'vitals', got %q", got)
 	}
 }
 
 func TestDirectoryWidget_MultipleSegments(t *testing.T) {
-	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/tail-claude-hud"}
+	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/vitals"}
 	cfg := defaultCfg()
 	cfg.Directory.Levels = 2
 
 	got := Directory(ctx, cfg).Text
-	if !strings.Contains(got, "my-projects/tail-claude-hud") {
+	if !strings.Contains(got, "my-projects/vitals") {
 		t.Errorf("expected 2 segments, got %q", got)
 	}
 }
@@ -1577,13 +1577,13 @@ func TestContextWidget_EmptyColorsUseDefaults(t *testing.T) {
 // -- Directory widget: style modes --------------------------------------------
 
 func TestDirectoryWidget_StyleFull(t *testing.T) {
-	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/tail-claude-hud"}
+	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/vitals"}
 	cfg := defaultCfg()
 	cfg.Directory.Style = "full"
 	cfg.Directory.Levels = 3
 
 	got := Directory(ctx, cfg).Text
-	if !strings.Contains(got, "Code/my-projects/tail-claude-hud") {
+	if !strings.Contains(got, "Code/my-projects/vitals") {
 		t.Errorf("full style: expected last 3 segments, got %q", got)
 	}
 }
@@ -1591,14 +1591,14 @@ func TestDirectoryWidget_StyleFull(t *testing.T) {
 func TestDirectoryWidget_StyleFish(t *testing.T) {
 	// Fish style abbreviates intermediate segments to first char.
 	// Home dir (/Users/kyle) is replaced with ~ first, so the path becomes
-	// ~/Code/my-projects/tail-claude-hud, then fish gives ~/C/m/tail-claude-hud.
-	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/tail-claude-hud"}
+	// ~/Code/my-projects/vitals, then fish gives ~/C/m/vitals.
+	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/vitals"}
 	cfg := defaultCfg()
 	cfg.Directory.Style = "fish"
 
 	got := Directory(ctx, cfg).Text
-	if !strings.Contains(got, "tail-claude-hud") {
-		t.Errorf("fish style: expected last segment 'tail-claude-hud' intact, got %q", got)
+	if !strings.Contains(got, "vitals") {
+		t.Errorf("fish style: expected last segment 'vitals' intact, got %q", got)
 	}
 	// Intermediate segments must be single characters.
 	if strings.Contains(got, "Code") {
@@ -1607,19 +1607,19 @@ func TestDirectoryWidget_StyleFish(t *testing.T) {
 	if strings.Contains(got, "my-projects") {
 		t.Errorf("fish style: 'my-projects' should be abbreviated to 'm', got %q", got)
 	}
-	if !strings.Contains(got, "~/C/m/tail-claude-hud") {
-		t.Errorf("fish style: expected '~/C/m/tail-claude-hud', got %q", got)
+	if !strings.Contains(got, "~/C/m/vitals") {
+		t.Errorf("fish style: expected '~/C/m/vitals', got %q", got)
 	}
 }
 
 func TestDirectoryWidget_StyleBasename(t *testing.T) {
-	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/tail-claude-hud"}
+	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/vitals"}
 	cfg := defaultCfg()
 	cfg.Directory.Style = "basename"
 
 	got := Directory(ctx, cfg).Text
-	if !strings.Contains(got, "tail-claude-hud") {
-		t.Errorf("basename style: expected 'tail-claude-hud', got %q", got)
+	if !strings.Contains(got, "vitals") {
+		t.Errorf("basename style: expected 'vitals', got %q", got)
 	}
 	if strings.Contains(got, "my-projects") {
 		t.Errorf("basename style: should not contain parent segments, got %q", got)
@@ -1678,7 +1678,7 @@ func TestAbbreviateFish(t *testing.T) {
 		path string
 		want string
 	}{
-		{"~/Code/my-projects/tail-claude-hud", "~/C/m/tail-claude-hud"},
+		{"~/Code/my-projects/vitals", "~/C/m/vitals"},
 		{"/usr/local/bin", "/u/l/bin"},
 		{"/single", "/single"},
 		{"~/project", "~/project"},

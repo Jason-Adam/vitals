@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/preset"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/stdin"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/preset"
+	"github.com/Jason-Adam/vitals/internal/stdin"
 )
 
 // writeTempTranscript creates a temporary .jsonl transcript file and returns its path.

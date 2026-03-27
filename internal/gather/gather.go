@@ -14,12 +14,12 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/term"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/breadcrumb"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/extracmd"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/git"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/transcript"
+	"github.com/Jason-Adam/vitals/internal/breadcrumb"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/extracmd"
+	"github.com/Jason-Adam/vitals/internal/git"
+	"github.com/Jason-Adam/vitals/internal/model"
+	"github.com/Jason-Adam/vitals/internal/transcript"
 )
 
 // transcriptWidgets are the widget names that require transcript data.

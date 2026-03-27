@@ -97,7 +97,7 @@ func TestListCustom_EmptyDirectory(t *testing.T) {
 	t.Setenv("HOME", dir)
 
 	// Create an empty presets dir.
-	presetsDir := filepath.Join(dir, ".config", "tail-claude-hud", "presets")
+	presetsDir := filepath.Join(dir, ".config", "vitals", "presets")
 	if err := os.MkdirAll(presetsDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestListCustom_WithFiles(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 
-	presetsDir := filepath.Join(dir, ".config", "tail-claude-hud", "presets")
+	presetsDir := filepath.Join(dir, ".config", "vitals", "presets")
 	if err := os.MkdirAll(presetsDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestListAll_BuiltinsBeforeCustom(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 
-	presetsDir := filepath.Join(dir, ".config", "tail-claude-hud", "presets")
+	presetsDir := filepath.Join(dir, ".config", "vitals", "presets")
 	if err := os.MkdirAll(presetsDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestListAll_NoDuplicates(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 
-	presetsDir := filepath.Join(dir, ".config", "tail-claude-hud", "presets")
+	presetsDir := filepath.Join(dir, ".config", "vitals", "presets")
 	if err := os.MkdirAll(presetsDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}

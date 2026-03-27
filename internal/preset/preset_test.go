@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/preset"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/preset"
 )
 
 func TestLoadValidPreset(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/git"
+	"github.com/Jason-Adam/vitals/internal/git"
 )
 
 // initRepo creates a minimal git repo in dir with a configured identity so

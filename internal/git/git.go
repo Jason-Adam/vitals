@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/logging"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/logging"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 const timeout = time.Second

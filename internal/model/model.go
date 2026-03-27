@@ -256,12 +256,12 @@ type StdinRateWindow struct {
 }
 
 // PluginDir returns the directory used for plugin state files:
-// ~/.claude/plugins/tail-claude-hud/
+// ~/.claude/plugins/vitals/
 // Falls back to os.TempDir() if the home directory cannot be resolved.
 func PluginDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return os.TempDir()
 	}
-	return filepath.Join(home, ".claude", "plugins", "tail-claude-hud")
+	return filepath.Join(home, ".claude", "plugins", "vitals")
 }

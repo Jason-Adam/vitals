@@ -1,6 +1,6 @@
 # Configuration
 
-TOML at `~/.config/tail-claude-hud/config.toml`. Generate defaults with `tail-claude-hud --init`.
+TOML at `~/.config/vitals/config.toml`. Generate defaults with `vitals --init`.
 
 ## Layout
 
@@ -77,7 +77,7 @@ Modes can be mixed. The `powerline` preset uses powerline for line 1 and plain f
 Seven built-in color themes: `default`, `dark`, `light`, `nord`, `gruvbox`, `tokyo-night`, `rose-pine`.
 
 ```bash
-tail-claude-hud --theme nord
+vitals --theme nord
 ```
 
 In powerline mode without an explicit `--theme`, the terminal background is auto-detected (via OSC 11) and the theme switches between `light` and `dark` automatically.

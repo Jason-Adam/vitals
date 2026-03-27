@@ -1,6 +1,6 @@
 {
   "transcript_path": "",
-  "cwd": "/Users/kyle/Code/my-projects/tail-claude-hud",
+  "cwd": "/Users/kyle/Code/my-projects/vitals",
   "model": {
     "id": "claude-sonnet-4-20250514",
     "display_name": "Claude Sonnet 4"

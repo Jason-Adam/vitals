@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/theme"
+	"github.com/Jason-Adam/vitals/internal/theme"
 )
 
 // Line represents a single rendered row in the statusline.
@@ -193,8 +193,8 @@ func configPath() string {
 	}
 
 	candidates := []string{
-		filepath.Join(home, ".config", "tail-claude-hud", "config.toml"),
-		filepath.Join(home, ".claude", "plugins", "tail-claude-hud", "config.toml"),
+		filepath.Join(home, ".config", "vitals", "config.toml"),
+		filepath.Join(home, ".claude", "plugins", "vitals", "config.toml"),
 	}
 
 	for _, p := range candidates {

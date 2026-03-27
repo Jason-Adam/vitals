@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/transcript"
+	"github.com/Jason-Adam/vitals/internal/transcript"
 )
 
 // --- ParseEntry ---

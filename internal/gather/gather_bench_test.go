@@ -9,13 +9,13 @@ import (
 	"runtime/pprof"
 	"testing"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/render"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/model"
+	"github.com/Jason-Adam/vitals/internal/render"
 )
 
 // TestProfile_FullPipeline captures a CPU profile of the full Gather+Render
-// pipeline and writes it to /tmp/tail-claude-hud-cpu.prof.
+// pipeline and writes it to /tmp/vitals-cpu.prof.
 //
 // Run with:
 //
@@ -23,14 +23,14 @@ import (
 //
 // Then inspect with:
 //
-//	go tool pprof -http=:6060 /tmp/tail-claude-hud-cpu.prof
+//	go tool pprof -http=:6060 /tmp/vitals-cpu.prof
 //
 // Or print a text summary:
 //
-//	go tool pprof -text /tmp/tail-claude-hud-cpu.prof | head -40
+//	go tool pprof -text /tmp/vitals-cpu.prof | head -40
 func TestProfile_FullPipeline(t *testing.T) {
 	if os.Getenv("BENCH_PROFILE") == "" {
-		t.Skip("set BENCH_PROFILE=1 to run CPU profiling (writes /tmp/tail-claude-hud-cpu.prof)")
+		t.Skip("set BENCH_PROFILE=1 to run CPU profiling (writes /tmp/vitals-cpu.prof)")
 	}
 
 	transcriptPath := filepath.Join(t.TempDir(), "bench-session.jsonl")
@@ -68,7 +68,7 @@ func TestProfile_FullPipeline(t *testing.T) {
 	}
 
 	cfg := config.LoadHud()
-	profPath := "/tmp/tail-claude-hud-cpu.prof"
+	profPath := "/tmp/vitals-cpu.prof"
 
 	f, err := os.Create(profPath)
 	if err != nil {
@@ -194,7 +194,7 @@ func BenchmarkRender_FullContext(b *testing.B) {
 		ModelDisplayName:  "Claude Sonnet 4",
 		ContextWindowSize: 200000,
 		ContextPercent:    42,
-		Cwd:               "/Users/kyle/Code/my-projects/tail-claude-hud",
+		Cwd:               "/Users/kyle/Code/my-projects/vitals",
 		InputTokens:       45000,
 		CacheCreation:     12000,
 		CacheRead:         8000,

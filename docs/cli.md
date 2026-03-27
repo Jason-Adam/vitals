@@ -1,7 +1,7 @@
 # CLI Reference
 
 ```
-tail-claude-hud [flags]
+vitals [flags]
   --init           Generate default config and register Claude Code hooks
   --preset NAME    Apply a built-in or custom preset
   --theme NAME     Override color theme
@@ -17,8 +17,8 @@ tail-claude-hud [flags]
 The binary handles Claude Code hook events directly:
 
 ```
-tail-claude-hud hook permission-request   # write breadcrumb (PermissionRequest hook)
-tail-claude-hud hook cleanup              # remove breadcrumb (PostToolUse, Stop hooks)
+vitals hook permission-request   # write breadcrumb (PermissionRequest hook)
+vitals hook cleanup              # remove breadcrumb (PostToolUse, Stop hooks)
 ```
 
 `--init` registers these hooks in `~/.claude/settings.json`. Re-running is idempotent.

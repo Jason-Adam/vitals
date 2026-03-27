@@ -6,11 +6,11 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/preset"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/render/widget"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/theme"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/model"
+	"github.com/Jason-Adam/vitals/internal/preset"
+	"github.com/Jason-Adam/vitals/internal/render/widget"
+	"github.com/Jason-Adam/vitals/internal/theme"
 )
 
 // makeTestConfig builds a Config with the given lines and a dark theme

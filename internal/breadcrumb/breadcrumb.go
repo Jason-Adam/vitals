@@ -1,7 +1,7 @@
 // Package breadcrumb manages permission-waiting breadcrumb files.
 //
 // When Claude Code's PermissionRequest hook fires, the hook handler writes a
-// small file to ~/.config/tail-claude-hud/waiting/{session_id}. The statusline
+// small file to ~/.config/vitals/waiting/{session_id}. The statusline
 // gather stage scans this directory to detect other sessions blocked on
 // permission approval. PostToolUse and Stop hooks remove the breadcrumb.
 //
@@ -32,9 +32,9 @@ type Breadcrumb struct {
 var WaitingDir = func() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return filepath.Join(os.TempDir(), "tail-claude-hud", "waiting")
+		return filepath.Join(os.TempDir(), "vitals", "waiting")
 	}
-	return filepath.Join(home, ".config", "tail-claude-hud", "waiting")
+	return filepath.Join(home, ".config", "vitals", "waiting")
 }
 
 // Write atomically creates a breadcrumb file for the given session.

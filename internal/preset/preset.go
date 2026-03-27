@@ -7,7 +7,7 @@ package preset
 import (
 	"sort"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
+	"github.com/Jason-Adam/vitals/internal/config"
 )
 
 // Preset holds the visual configuration for a named layout.

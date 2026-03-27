@@ -1,6 +1,6 @@
 package preset
 
-import "github.com/kylesnowschwartz/tail-claude-hud/internal/config"
+import "github.com/Jason-Adam/vitals/internal/config"
 
 // builtins is the registry of named built-in presets.
 var builtins = map[string]Preset{

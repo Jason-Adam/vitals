@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/transcript"
+	"github.com/Jason-Adam/vitals/internal/transcript"
 )
 
 // BenchmarkStateFile_ReadAndUnmarshal measures the cost of loading a state file

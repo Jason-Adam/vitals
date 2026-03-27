@@ -1,15 +1,15 @@
-# tail-claude-hud
+# vitals
 
 A terminal statusline for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sessions. Shows model, context usage, tools, agents, todos, git status, and more -- updated on every tick.
 
-![tail-claude-hud demo](demo.gif)
+![vitals demo](demo.gif)
 
 ## Install
 
 Requires Go 1.25+.
 
 ```bash
-go install github.com/kylesnowschwartz/tail-claude-hud/cmd/tail-claude-hud@latest
+go install github.com/Jason-Adam/vitals/cmd/vitals@latest
 ```
 
 To update, run the same command. `go install` puts the binary in `~/go/bin` by default, so make sure that's in your `PATH`.
@@ -17,8 +17,8 @@ To update, run the same command. `go install` puts the binary in `~/go/bin` by d
 To build from source:
 
 ```bash
-git clone git@github.com:kylesnowschwartz/tail-claude-hud.git
-cd tail-claude-hud
+git clone git@github.com:Jason-Adam/vitals.git
+cd vitals
 just build
 ```
 
@@ -30,12 +30,12 @@ Add to `~/.claude/settings.json`:
 {
   "statusLine": {
     "type": "command",
-    "command": "tail-claude-hud"
+    "command": "vitals"
   }
 }
 ```
 
-Works out of the box with the `default` preset. To customize, run `tail-claude-hud --init` to generate a config at `~/.config/tail-claude-hud/config.toml`.
+Works out of the box with the `default` preset. To customize, run `vitals --init` to generate a config at `~/.config/vitals/config.toml`.
 
 ## Presets
 
@@ -50,10 +50,10 @@ Five built-in presets. Apply one without editing TOML:
 | `minimal` | 1 | Model, context, duration. Space-separated, no backgrounds |
 
 ```bash
-tail-claude-hud --preset powerline
+vitals --preset powerline
 ```
 
-Custom presets go in `~/.config/tail-claude-hud/presets/*.toml`.
+Custom presets go in `~/.config/vitals/presets/*.toml`.
 
 ## Documentation
 
@@ -65,7 +65,7 @@ Custom presets go in `~/.config/tail-claude-hud/presets/*.toml`.
 
 ## Related
 
-- [tail-claude](https://github.com/kylesnowschwartz/tail-claude) -- Terminal TUI for reading Claude Code session logs
+- [tail-claude](https://github.com/Jason-Adam/tail-claude) -- Terminal TUI for reading Claude Code session logs
 
 ## License
 

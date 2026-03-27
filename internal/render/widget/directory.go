@@ -7,8 +7,8 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/config"
-	"github.com/kylesnowschwartz/tail-claude-hud/internal/model"
+	"github.com/Jason-Adam/vitals/internal/config"
+	"github.com/Jason-Adam/vitals/internal/model"
 )
 
 var dirStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Bold(true)
@@ -81,7 +81,7 @@ func substituteHome(path string) string {
 //
 // Examples:
 //
-//	~/Code/my-projects/tail-claude-hud → ~/C/m/tail-claude-hud
+//	~/Code/my-projects/vitals → ~/C/m/vitals
 //	/usr/local/bin                      → /u/l/bin
 func abbreviateFish(path string) string {
 	parts := strings.Split(path, "/")
