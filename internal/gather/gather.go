@@ -19,7 +19,6 @@ import (
 	"github.com/Jason-Adam/vitals/internal/git"
 	"github.com/Jason-Adam/vitals/internal/model"
 	"github.com/Jason-Adam/vitals/internal/transcript"
-	"github.com/charmbracelet/x/term"
 )
 
 // transcriptWidgets are the widget names that require transcript data.
@@ -265,7 +264,7 @@ func sessionStart(path string) string {
 // (defaultTerminalWidth) when this returns 0.
 func terminalWidth() int {
 	for _, fd := range []uintptr{os.Stdin.Fd(), os.Stderr.Fd(), os.Stdout.Fd()} {
-		if w, _, err := term.GetSize(fd); err == nil && w > 0 {
+		if w := getTermWidth(fd); w > 0 {
 			return w
 		}
 	}

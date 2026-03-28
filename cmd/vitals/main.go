@@ -22,7 +22,6 @@ import (
 	"github.com/Jason-Adam/vitals/internal/preset"
 	"github.com/Jason-Adam/vitals/internal/render"
 	"github.com/Jason-Adam/vitals/internal/stdin"
-	"github.com/lucasb-eyer/go-colorful"
 )
 
 // installPath is the go install target for the update command.
@@ -408,13 +407,15 @@ func queryLightBackground() (light bool, ok bool) {
 }
 
 // isLightColor returns true when a color's HSL lightness is >= 0.5.
-// Mirrors lipgloss's unexported isDarkColor with the inverse condition.
+// Uses the standard RGB-to-HSL lightness formula: L = (max + min) / 2.
 func isLightColor(c color.Color) bool {
-	col, ok := colorful.MakeColor(c)
-	if !ok {
-		return false // can't determine — assume dark (safe default)
-	}
-	_, _, l := col.Hsl()
+	r, g, b, _ := c.RGBA()
+	rf := float64(r) / 0xffff
+	gf := float64(g) / 0xffff
+	bf := float64(b) / 0xffff
+	mx := max(rf, gf, bf)
+	mn := min(rf, gf, bf)
+	l := (mx + mn) / 2
 	return l >= 0.5
 }
 
