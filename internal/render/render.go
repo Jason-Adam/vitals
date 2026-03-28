@@ -8,13 +8,13 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/x/ansi"
 	"github.com/Jason-Adam/vitals/internal/color"
 	"github.com/Jason-Adam/vitals/internal/config"
 	"github.com/Jason-Adam/vitals/internal/logging"
 	"github.com/Jason-Adam/vitals/internal/model"
 	"github.com/Jason-Adam/vitals/internal/render/widget"
 	"github.com/Jason-Adam/vitals/internal/theme"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // truncateSuffix is appended when a line is truncated to fit terminal width.
@@ -165,7 +165,7 @@ func renderPowerline(results []widget.WidgetResult, names []string, cfg *config.
 // no background colors — just the widget text with its fg color applied.
 //
 // When results is empty the function returns "".
-func renderMinimal(results []widget.WidgetResult, line config.Line, cfg *config.Config) string {
+func renderMinimal(results []widget.WidgetResult, _ config.Line, _ *config.Config) string {
 	var parts []string
 	for _, r := range results {
 		if r.IsEmpty() {

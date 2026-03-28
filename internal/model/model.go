@@ -40,6 +40,10 @@ type RenderContext struct {
 	// Empty when not running inside a worktree.
 	WorktreeName string
 
+	// ServiceName is the repository/project basename (e.g. "vitals").
+	// Populated only when the "service" widget is active.
+	ServiceName string
+
 	// ExtraOutput is the label returned by the user's extra command.
 	// Empty when no extra command is configured or the command fails/times out.
 	ExtraOutput string

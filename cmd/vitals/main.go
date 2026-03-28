@@ -22,7 +22,6 @@ import (
 	"github.com/Jason-Adam/vitals/internal/preset"
 	"github.com/Jason-Adam/vitals/internal/render"
 	"github.com/Jason-Adam/vitals/internal/stdin"
-	"github.com/Jason-Adam/vitals/internal/version"
 	"github.com/lucasb-eyer/go-colorful"
 )
 
@@ -36,9 +35,6 @@ func main() {
 		switch os.Args[1] {
 		case "hook":
 			runHook()
-			return
-		case "version", "--version", "-version", "-v":
-			fmt.Println(version.String())
 			return
 		case "update":
 			runUpdate()
@@ -428,7 +424,7 @@ func isLightColor(c color.Color) bool {
 // interpreted by the terminal. Useful for verifying that threshold colors,
 // powerline backgrounds, and other ANSI styling are actually present.
 func printRaw(w io.Writer, data []byte) {
-	for i := 0; i < len(data); i++ {
+	for i := range len(data) {
 		if data[i] == 0x1b {
 			fmt.Fprint(w, `\x1b`)
 		} else {
@@ -467,8 +463,6 @@ func runHook() {
 
 // runUpdate installs the latest version via go install.
 func runUpdate() {
-	current := version.String()
-	fmt.Printf("Current version: %s\n", current)
 	fmt.Printf("Installing latest from %s...\n", installPath)
 
 	cmd := exec.Command("go", "install", installPath)
@@ -479,18 +473,7 @@ func runUpdate() {
 		os.Exit(1)
 	}
 
-	// Run the newly installed binary to get its version.
-	out, err := exec.Command("vitals", "version").Output()
-	if err != nil {
-		fmt.Println("Updated successfully.")
-		return
-	}
-	newVersion := strings.TrimSpace(string(out))
-	if newVersion == current {
-		fmt.Printf("Already up to date (%s).\n", current)
-	} else {
-		fmt.Printf("Updated %s -> %s\n", current, newVersion)
-	}
+	fmt.Println("Updated successfully.")
 }
 
 // usage prints help with -- prefixed flags (Go's flag package defaults to single -).
@@ -499,7 +482,6 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "Commands:\n")
 	fmt.Fprintf(os.Stderr, "  hook <event>    handle a Claude Code hook event\n")
 	fmt.Fprintf(os.Stderr, "  update          install the latest version via go install\n")
-	fmt.Fprintf(os.Stderr, "  version         print the current version\n")
 	fmt.Fprintf(os.Stderr, "\nFlags:\n")
 	flag.VisitAll(func(f *flag.Flag) {
 		name := f.Name

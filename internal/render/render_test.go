@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/colorprofile"
-	"github.com/charmbracelet/x/ansi"
 	"github.com/Jason-Adam/vitals/internal/config"
 	"github.com/Jason-Adam/vitals/internal/model"
 	"github.com/Jason-Adam/vitals/internal/render/widget"
 	"github.com/Jason-Adam/vitals/internal/theme"
+	"github.com/charmbracelet/colorprofile"
+	"github.com/charmbracelet/x/ansi"
 )
 
 func TestRender_ProducesOutput(t *testing.T) {

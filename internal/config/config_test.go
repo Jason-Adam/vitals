@@ -33,7 +33,7 @@ func TestDefaultsWhenNoFile(t *testing.T) {
 	if len(cfg.Lines) != 2 {
 		t.Fatalf("expected 2 lines, got %d", len(cfg.Lines))
 	}
-	assertWidgets(t, cfg.Lines[0].Widgets, []string{"model", "context", "project", "worktree", "todos", "duration", "permission"})
+	assertWidgets(t, cfg.Lines[0].Widgets, []string{"model", "context", "service", "worktree", "project", "todos", "duration", "permission"})
 	assertWidgets(t, cfg.Lines[1].Widgets, []string{"agents"})
 
 	// Spec 4: default Icons
@@ -286,7 +286,7 @@ func TestDefaultLayoutIsTwoLines(t *testing.T) {
 		t.Fatalf("default layout: want 2 lines, got %d", len(cfg.Lines))
 	}
 
-	assertWidgets(t, cfg.Lines[0].Widgets, []string{"model", "context", "project", "worktree", "todos", "duration", "permission"})
+	assertWidgets(t, cfg.Lines[0].Widgets, []string{"model", "context", "service", "worktree", "project", "todos", "duration", "permission"})
 	assertWidgets(t, cfg.Lines[1].Widgets, []string{"agents"})
 }
 

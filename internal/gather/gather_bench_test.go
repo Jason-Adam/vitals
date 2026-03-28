@@ -201,7 +201,7 @@ func BenchmarkRender_FullContext(b *testing.B) {
 		SessionStart:      "2026-03-15T09:00:00Z",
 		TerminalWidth:     200,
 		Transcript: &model.TranscriptData{
-			Path:  "/tmp/bench-session.jsonl",
+			Path: "/tmp/bench-session.jsonl",
 			Tools: []model.ToolEntry{
 				{Name: "Bash", Completed: true},
 				{Name: "Read", Completed: true},

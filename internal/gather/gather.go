@@ -13,13 +13,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/charmbracelet/x/term"
 	"github.com/Jason-Adam/vitals/internal/breadcrumb"
 	"github.com/Jason-Adam/vitals/internal/config"
 	"github.com/Jason-Adam/vitals/internal/extracmd"
 	"github.com/Jason-Adam/vitals/internal/git"
 	"github.com/Jason-Adam/vitals/internal/model"
 	"github.com/Jason-Adam/vitals/internal/transcript"
+	"github.com/charmbracelet/x/term"
 )
 
 // transcriptWidgets are the widget names that require transcript data.
@@ -66,36 +66,40 @@ func Gather(input *model.StdinData, cfg *config.Config) *model.RenderContext {
 	// Determine which widget names are active across all configured lines.
 	active := activeWidgets(cfg)
 
+	// Service name: repo basename, derived from the original cwd (worktree)
+	// or current cwd (non-worktree). Only populated when the widget is active.
+	if active["service"] {
+		cwd := input.Cwd
+		if input.Worktree != nil && input.Worktree.OriginalCwd != "" {
+			cwd = input.Worktree.OriginalCwd
+		}
+		ctx.ServiceName = filepath.Base(cwd)
+	}
+
 	var wg sync.WaitGroup
 
 	// Transcript goroutine: needed when any of tools/agents/todos are active
 	// and a transcript path is available.
 	if needsTranscript(active) && input.TranscriptPath != "" {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			ctx.Transcript = gatherTranscript(input.TranscriptPath)
-		}()
+		})
 	}
 
 	// Git goroutine: needed when the "git" or "project" widget is active.
 	// "project" renders the project name with optional ahead/behind counts,
 	// so it requires the same git data as the "git" widget.
 	if active["git"] || active["project"] {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			ctx.Git = git.GetStatus(input.Cwd)
-		}()
+		})
 	}
 
 	// Extra command goroutine: runs user-configured command when set.
 	if cfg.Extra.Command != "" {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			ctx.ExtraOutput = extracmd.Run(cfg.Extra.Command)
-		}()
+		})
 	}
 
 	// Usage: populated from stdin rate_limits (zero-cost, no network).
@@ -106,19 +110,17 @@ func Gather(input *model.StdinData, cfg *config.Config) *model.RenderContext {
 	// Permission detection goroutine: scans breadcrumb files written by
 	// Claude Code hooks. Only runs when the widget is active.
 	if active["permission"] {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if b := breadcrumb.FindWaiting(input.SessionID); b != nil {
 				ctx.PermissionProject = b.Project
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
 
 	// Post-gather: compute derived fields that depend on gathered data.
-	ctx.SessionStart = sessionStart(ctx.Transcript, input.TranscriptPath)
+	ctx.SessionStart = sessionStart(input.TranscriptPath)
 	ctx.TerminalWidth = terminalWidth()
 
 	// Claude Code's pseudo-TTY reports 80 columns regardless of actual
@@ -231,7 +233,7 @@ func readFirstLine(path string) []byte {
 // transcript file, which the duration widget uses as the session start time.
 // Falls back to "" when the transcript path is empty, unreadable, or has no
 // parseable entries.
-func sessionStart(td *model.TranscriptData, path string) string {
+func sessionStart(path string) string {
 	if path == "" {
 		return ""
 	}

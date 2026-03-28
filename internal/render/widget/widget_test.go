@@ -508,7 +508,7 @@ func TestDirectoryWidget_EmptyCwd(t *testing.T) {
 }
 
 func TestRegistryHasAllWidgets(t *testing.T) {
-	expected := []string{"model", "context", "directory", "git", "project", "duration", "tools", "agents", "todos", "tokens", "cost", "lines", "messages", "speed", "permission", "usage", "worktree"}
+	expected := []string{"model", "context", "directory", "git", "project", "duration", "tools", "agents", "todos", "tokens", "cost", "lines", "messages", "speed", "permission", "service", "usage", "worktree"}
 	for _, name := range expected {
 		if _, ok := Registry[name]; !ok {
 			t.Errorf("Registry missing widget %q", name)
@@ -1489,9 +1489,12 @@ func TestDirectoryWidget_StyleFull(t *testing.T) {
 
 func TestDirectoryWidget_StyleFish(t *testing.T) {
 	// Fish style abbreviates intermediate segments to first char.
-	// Home dir (/Users/kyle) is replaced with ~ first, so the path becomes
-	// ~/Code/my-projects/vitals, then fish gives ~/C/m/vitals.
-	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/vitals"}
+	// Home dir is replaced with ~ first, then fish abbreviates intermediates.
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("failed to get home dir: %v", err)
+	}
+	ctx := &model.RenderContext{Cwd: home + "/Code/my-projects/vitals"}
 	cfg := defaultCfg()
 	cfg.Directory.Style = "fish"
 
@@ -1952,7 +1955,6 @@ func TestWidgetResult_IsEmpty(t *testing.T) {
 		t.Error("WidgetResult with only FgColor should still be empty")
 	}
 }
-
 
 // -- percentToIcon ------------------------------------------------------------
 

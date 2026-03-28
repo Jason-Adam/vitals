@@ -366,8 +366,12 @@ func TestGather_GitSpawnedForProjectWidget(t *testing.T) {
 	// We can only observe this indirectly: Git field must be non-nil when
 	// the cwd is inside a real git repository.
 	input := minimalInput()
-	// Use a real directory that is inside a git repo so git.GetStatus returns data.
-	input.Cwd = "/Users/kyle/Code/my-projects/vitals"
+	// Use the current working directory (which is inside this git repo).
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get cwd: %v", err)
+	}
+	input.Cwd = cwd
 	cfg := cfgWithWidgets("project") // "git" widget NOT listed
 
 	ctx := Gather(input, cfg)

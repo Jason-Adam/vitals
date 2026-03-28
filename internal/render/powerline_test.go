@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/x/ansi"
 	"github.com/Jason-Adam/vitals/internal/config"
 	"github.com/Jason-Adam/vitals/internal/model"
 	"github.com/Jason-Adam/vitals/internal/preset"
 	"github.com/Jason-Adam/vitals/internal/render/widget"
 	"github.com/Jason-Adam/vitals/internal/theme"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // makeTestConfig builds a Config with the given lines and a dark theme
