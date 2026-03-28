@@ -508,7 +508,7 @@ func TestDirectoryWidget_EmptyCwd(t *testing.T) {
 }
 
 func TestRegistryHasAllWidgets(t *testing.T) {
-	expected := []string{"model", "context", "directory", "git", "project", "env", "duration", "tools", "agents", "todos", "session", "thinking", "tokens", "cost", "lines", "outputstyle", "messages", "skills", "speed", "permission", "usage", "worktree"}
+	expected := []string{"model", "context", "directory", "git", "project", "duration", "tools", "agents", "todos", "tokens", "cost", "lines", "messages", "speed", "permission", "usage", "worktree"}
 	for _, name := range expected {
 		if _, ok := Registry[name]; !ok {
 			t.Errorf("Registry missing widget %q", name)
@@ -524,7 +524,7 @@ func TestTranscriptWidgets_NilTranscriptReturnsEmpty(t *testing.T) {
 	cfg := defaultCfg()
 
 	// All transcript-powered widgets must return empty when Transcript is nil.
-	widgets := []string{"tools", "agents", "todos", "session", "thinking", "messages", "speed"}
+	widgets := []string{"tools", "agents", "todos", "messages", "speed"}
 	for _, name := range widgets {
 		fn := Registry[name]
 		if got := fn(ctx, cfg); !got.IsEmpty() {
@@ -973,107 +973,6 @@ func TestTodosWidget_NoneDoneShowsDimCount(t *testing.T) {
 	got := Todos(ctx, cfg).Text
 	if !strings.Contains(got, "0/2") {
 		t.Errorf("Todos none done: expected '0/2', got %q", got)
-	}
-}
-
-// -- Env widget ---------------------------------------------------------------
-
-func TestEnvWidget_NilEnvCountsReturnsEmpty(t *testing.T) {
-	ctx := &model.RenderContext{EnvCounts: nil}
-	cfg := defaultCfg()
-
-	if got := Env(ctx, cfg); !got.IsEmpty() {
-		t.Errorf("Env with nil EnvCounts: expected empty, got %q", got.Text)
-	}
-}
-
-func TestEnvWidget_ZeroCountsReturnsEmpty(t *testing.T) {
-	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{}}
-	cfg := defaultCfg()
-
-	if got := Env(ctx, cfg); !got.IsEmpty() {
-		t.Errorf("Env with all-zero counts: expected empty, got %q", got.Text)
-	}
-}
-
-func TestEnvWidget_CompactFormat_AllCategories(t *testing.T) {
-	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{
-		MCPServers:    3,
-		ClaudeMdFiles: 2,
-		RuleFiles:     4,
-		Hooks:         1,
-	}}
-	cfg := defaultCfg()
-
-	got := Env(ctx, cfg).Text
-	// Each category must appear with its letter suffix.
-	for _, want := range []string{"3M", "2C", "4R", "1H"} {
-		if !strings.Contains(got, want) {
-			t.Errorf("Env compact format: expected %q in output, got %q", want, got)
-		}
-	}
-}
-
-func TestEnvWidget_SkipsZeroCategories(t *testing.T) {
-	// Only MCPs and hooks are non-zero; C and R must not appear.
-	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{
-		MCPServers: 5,
-		Hooks:      2,
-	}}
-	cfg := defaultCfg()
-
-	got := Env(ctx, cfg).Text
-	if !strings.Contains(got, "5M") {
-		t.Errorf("Env: expected '5M', got %q", got)
-	}
-	if !strings.Contains(got, "2H") {
-		t.Errorf("Env: expected '2H', got %q", got)
-	}
-	if strings.Contains(got, "C") {
-		t.Errorf("Env: expected no 'C' when ClaudeMdFiles=0, got %q", got)
-	}
-	if strings.Contains(got, "R") {
-		t.Errorf("Env: expected no 'R' when RuleFiles=0, got %q", got)
-	}
-}
-
-func TestEnvWidget_MCPOnly(t *testing.T) {
-	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{MCPServers: 3}}
-	cfg := defaultCfg()
-
-	got := Env(ctx, cfg).Text
-	if !strings.Contains(got, "3M") {
-		t.Errorf("Env MCPOnly: expected '3M' in output, got %q", got)
-	}
-}
-
-func TestEnvWidget_ClaudeMdOnly(t *testing.T) {
-	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{ClaudeMdFiles: 2}}
-	cfg := defaultCfg()
-
-	got := Env(ctx, cfg).Text
-	if !strings.Contains(got, "2C") {
-		t.Errorf("Env ClaudeMdOnly: expected '2C' in output, got %q", got)
-	}
-}
-
-func TestEnvWidget_RuleFilesOnly(t *testing.T) {
-	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{RuleFiles: 4}}
-	cfg := defaultCfg()
-
-	got := Env(ctx, cfg).Text
-	if !strings.Contains(got, "4R") {
-		t.Errorf("Env RuleFilesOnly: expected '4R' in output, got %q", got)
-	}
-}
-
-func TestEnvWidget_HooksOnly(t *testing.T) {
-	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{Hooks: 3}}
-	cfg := defaultCfg()
-
-	got := Env(ctx, cfg).Text
-	if !strings.Contains(got, "3H") {
-		t.Errorf("Env HooksOnly: expected '3H' in output, got %q", got)
 	}
 }
 
@@ -1892,42 +1791,6 @@ func TestLastNSegments(t *testing.T) {
 	}
 }
 
-// -- Session widget -----------------------------------------------------------
-
-func TestSessionWidget_NilTranscriptReturnsEmpty(t *testing.T) {
-	ctx := &model.RenderContext{Transcript: nil}
-	cfg := defaultCfg()
-
-	if got := Session(ctx, cfg); !got.IsEmpty() {
-		t.Errorf("Session with nil Transcript: expected empty, got %q", got.Text)
-	}
-}
-
-func TestSessionWidget_EmptySessionNameReturnsEmpty(t *testing.T) {
-	ctx := &model.RenderContext{Transcript: &model.TranscriptData{SessionName: ""}}
-	cfg := defaultCfg()
-
-	if got := Session(ctx, cfg); !got.IsEmpty() {
-		t.Errorf("Session with empty SessionName: expected empty, got %q", got.Text)
-	}
-}
-
-func TestSessionWidget_RendersSessionName(t *testing.T) {
-	ctx := &model.RenderContext{Transcript: &model.TranscriptData{SessionName: "my-feature-branch"}}
-	cfg := defaultCfg()
-
-	got := Session(ctx, cfg).Text
-	if !strings.Contains(got, "my-feature-branch") {
-		t.Errorf("Session: expected 'my-feature-branch' in output, got %q", got)
-	}
-}
-
-func TestSessionWidget_RegisteredInRegistry(t *testing.T) {
-	if _, ok := Registry["session"]; !ok {
-		t.Error("Registry missing 'session' widget")
-	}
-}
-
 // -- New icon fields ----------------------------------------------------------
 
 func TestIconsFor_NewFieldsNonEmpty(t *testing.T) {
@@ -2090,30 +1953,6 @@ func TestWidgetResult_IsEmpty(t *testing.T) {
 	}
 }
 
-// TestWidgetResult_DualOutput verifies that the env widget sets both Text
-// (pre-styled for plain mode) and PlainText+FgColor (for powerline/minimal).
-func TestWidgetResult_DualOutput(t *testing.T) {
-	ctx := &model.RenderContext{EnvCounts: &model.EnvCounts{MCPServers: 3, Hooks: 2}}
-	cfg := defaultCfg()
-
-	result := Env(ctx, cfg)
-
-	// FgColor must be "8" (MutedStyle's color) for powerline/minimal rendering.
-	if result.FgColor != "8" {
-		t.Errorf("Env FgColor: expected '8', got %q", result.FgColor)
-	}
-
-	// PlainText must be the unstyled content.
-	if result.PlainText != "3M 2H" {
-		t.Errorf("Env PlainText: expected '3M 2H', got %q", result.PlainText)
-	}
-
-	// Text must be the pre-styled version for plain mode.
-	want := envStyle.Render("3M 2H")
-	if result.Text != want {
-		t.Errorf("Env Text: expected pre-styled %q, got %q", want, result.Text)
-	}
-}
 
 // -- percentToIcon ------------------------------------------------------------
 

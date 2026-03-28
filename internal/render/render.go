@@ -280,7 +280,7 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 
 		// Truncate only when the terminal width is known. When width
 		// detection fails (returns 0), output the raw line and let Claude
-		// Code handle it — matching claude-hud's behavior.
+		// Code handle it.
 		if ctx.TerminalWidth >= minTruncateWidth {
 			output = ansi.Truncate(output, ctx.TerminalWidth, truncateSuffix)
 		}

@@ -27,6 +27,6 @@ Reads are incremental (O(delta) not O(n)) by tracking byte offsets per file.
 
 - **Fail-open config**: Missing or corrupt TOML yields defaults. The statusline must always render.
 - **Conditional goroutines**: The gather stage checks which widgets are configured before spawning work. No transcript widgets active = no transcript parsing.
-- **Never write to stderr**: Claude Code owns the terminal. Debug logging goes to `~/.claude/plugins/vitals/debug.log`, gated behind `TAIL_CLAUDE_HUD_DEBUG=1`.
+- **Never write to stderr**: Claude Code owns the terminal. Debug logging goes to `~/.claude/plugins/vitals/debug.log`, gated behind `VITALS_DEBUG=1`.
 - **Hook-based permission detection**: The binary doubles as a Claude Code hook handler (`vitals hook <event>`). PermissionRequest writes a breadcrumb file; PostToolUse and Stop remove it. The gather stage scans breadcrumb files instead of the process table, keeping the project free of cgo.
 - **Single-digit millisecond budget**: The full cycle runs on every tick. No work that doesn't contribute to the current frame.

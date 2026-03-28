@@ -6,10 +6,8 @@
 package transcript
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/Jason-Adam/vitals/internal/model"
@@ -21,12 +19,8 @@ const maxTools = 20
 // maxAgents is the maximum number of AgentEntries kept in the display slice.
 const maxAgents = 10
 
-// maxSkills is the maximum number of skill names kept in the display slice.
-const maxSkills = 20
-
 // bashTargetMaxLen is the number of characters kept from a Bash command for
-// the target field (matches claude-hud's 40-char truncation convention; the
-// TS source uses 30 but the card spec says 40).
+// the target field. Truncated to 40 characters.
 const bashTargetMaxLen = 40
 
 // internalTool holds richer per-invocation state than model.ToolEntry.
@@ -90,18 +84,10 @@ type ExtractionState struct {
 	// Used by the speed widget to compute a rolling tokens/sec average.
 	tokenSamples []model.TokenSample
 
-	// sessionName holds the display name for the current session. Set from a
-	// custom-title entry when present, otherwise falls back to the slug field.
-	sessionName string
-
 	// thinkingActive is true when the most recent assistant message that
 	// contained a thinking block did not also contain a tool_use or text block.
-	// It is cleared whenever a tool_use or text block is seen in the same entry.
+	// Used internally to drive handleThinkingStart/End for tool entries.
 	thinkingActive bool
-
-	// thinkingCount is the total number of thinking blocks observed across all
-	// assistant messages in the session.
-	thinkingCount int
 
 	// thinkingTool points to the most recent thinking ToolEntry while it is
 	// still running (Completed=false). It is set by handleThinkingStart and
@@ -125,12 +111,6 @@ type ExtractionState struct {
 	// in the transcript, excluding tool_result entries (which are infrastructure
 	// messages, not conversational turns).
 	messageCount int
-
-	// skillNames is the ordered list of skill names invoked in the session
-	// (newest last), capped at maxSkills. Detected from two sources:
-	// user-typed slash commands (<command-name> tags) and assistant-side
-	// Skill tool_use blocks.
-	skillNames []string
 }
 
 // NewExtractionState returns an initialised, empty ExtractionState.
@@ -160,14 +140,6 @@ func (es *ExtractionState) ProcessEntry(e Entry) {
 		return
 	}
 
-	// custom-title entries take priority over slug for the session name.
-	if e.Type == "custom-title" && e.CustomTitle != "" {
-		es.sessionName = e.CustomTitle
-	} else if e.Slug != "" && es.sessionName == "" {
-		// slug is a fallback: only set when no custom-title has been seen yet.
-		es.sessionName = e.Slug
-	}
-
 	blocks := ExtractContentBlocks(e)
 	ts := e.ParsedTimestamp()
 
@@ -184,13 +156,6 @@ func (es *ExtractionState) ProcessEntry(e Entry) {
 			es.messageCount++
 		}
 	}
-	// Detect skill invocations from user messages. Claude Code records
-	// slash-command usage as user messages with the skill name wrapped in
-	// <command-name>/skill-name</command-name> XML tags in the raw content string.
-	if role == "user" {
-		es.extractSkillFromUserMessage(e)
-	}
-
 	if ts.IsZero() {
 		ts = time.Now()
 	}
@@ -223,7 +188,6 @@ func (es *ExtractionState) ProcessEntry(e Entry) {
 	// Thinking is active only when a thinking block was seen but no subsequent
 	// tool_use or text block appeared in the same message.
 	if len(blocks.Thinking) > 0 {
-		es.thinkingCount += len(blocks.Thinking)
 		newActive := len(blocks.ToolUse) == 0 && !blocks.HasText
 		if !es.thinkingActive {
 			// Thinking just started: emit a running ToolEntry.
@@ -255,79 +219,8 @@ func (es *ExtractionState) processToolUse(b ToolUseBlock, ts time.Time) {
 		es.handleTaskCreate(b)
 	case "TaskUpdate":
 		es.handleTaskUpdate(b)
-	case "Skill":
-		es.handleSkillToolUse(b, ts)
 	default:
 		es.handleRegularToolUse(b, ts)
-	}
-}
-
-// extractSkillFromUserMessage parses a <command-name>/skill</command-name> tag
-// from a user message's raw content string. Claude Code records slash-command
-// invocations this way rather than as tool_use blocks.
-func (es *ExtractionState) extractSkillFromUserMessage(e Entry) {
-	// User message content is either a JSON string or an array. Skill
-	// invocations arrive as plain strings, so skip arrays early.
-	if len(e.Message.Content) == 0 || e.Message.Content[0] == '[' {
-		return
-	}
-
-	// Fast path: skip the unmarshal when the tag isn't in the raw JSON.
-	if !bytes.Contains(e.Message.Content, []byte("<command-name>/")) {
-		return
-	}
-
-	var content string
-	if err := json.Unmarshal(e.Message.Content, &content); err != nil {
-		return
-	}
-
-	// Real skill invocations are short messages that start with
-	// <command-message> or <command-name>. Longer messages that happen
-	// to contain these tags (e.g. agent results quoting code) are not
-	// skill invocations.
-	if !strings.HasPrefix(content, "<command-message>") && !strings.HasPrefix(content, "<command-name>") {
-		return
-	}
-
-	const prefix = "<command-name>/"
-	const suffix = "</command-name>"
-	start := strings.Index(content, prefix)
-	if start < 0 {
-		return
-	}
-	start += len(prefix)
-	end := strings.Index(content[start:], suffix)
-	if end < 0 {
-		return
-	}
-	name := content[start : start+end]
-	if name == "" {
-		return
-	}
-
-	es.recordSkill(name)
-}
-
-// handleSkillToolUse records a skill invocation from an assistant-side Skill
-// tool_use block (input.skill contains the skill name). Also registers as a
-// regular tool so the entry appears in the tools activity feed.
-func (es *ExtractionState) handleSkillToolUse(b ToolUseBlock, ts time.Time) {
-	var input struct {
-		Skill string `json:"skill"`
-	}
-	_ = json.Unmarshal(b.Input, &input)
-	if input.Skill != "" {
-		es.recordSkill(input.Skill)
-	}
-	es.handleRegularToolUse(b, ts)
-}
-
-// recordSkill appends a skill name and enforces the cap.
-func (es *ExtractionState) recordSkill(name string) {
-	es.skillNames = append(es.skillNames, name)
-	if len(es.skillNames) > maxSkills {
-		es.skillNames = es.skillNames[1:]
 	}
 }
 
@@ -584,30 +477,22 @@ func (es *ExtractionState) ToTranscriptData() *model.TranscriptData {
 	todos := make([]model.TodoItem, len(es.todos))
 	copy(todos, es.todos)
 
-	skillNames := make([]string, len(es.skillNames))
-	copy(skillNames, es.skillNames)
-
 	tokenSamples := make([]model.TokenSample, len(es.tokenSamples))
 	copy(tokenSamples, es.tokenSamples)
 
 	return &model.TranscriptData{
-		SessionName:    es.sessionName,
-		Tools:          tools,
-		Agents:         agents,
-		Todos:          todos,
-		SkillNames:     skillNames,
-		TokenSamples:   tokenSamples,
-		ThinkingActive: es.thinkingActive,
-		ThinkingCount:  es.thinkingCount,
-		SpinnerFrame:   es.spinnerFrame,
-		DividerOffset:  es.dividerOffset,
-		MessageCount:   es.messageCount,
+		Tools:         tools,
+		Agents:        agents,
+		Todos:         todos,
+		TokenSamples:  tokenSamples,
+		SpinnerFrame:  es.spinnerFrame,
+		DividerOffset: es.dividerOffset,
+		MessageCount:  es.messageCount,
 	}
 }
 
 // resolveTaskIndex looks up a task ID in the index. If the ID is numeric, it
-// also tries a one-based positional lookup as a fallback (matching claude-hud's
-// resolveTaskIndex behaviour). Returns -1 when no match is found.
+// also tries a one-based positional lookup as a fallback. Returns -1 when no match is found.
 func (es *ExtractionState) resolveTaskIndex(taskID string) int {
 	if taskID == "" {
 		return -1
@@ -658,7 +543,7 @@ func toolCategory(name string) string {
 }
 
 // extractTarget returns a short contextual string describing what a tool is
-// operating on. Ported from claude-hud transcript.ts:173-190.
+// operating on.
 func extractTarget(toolName string, input json.RawMessage) string {
 	if len(input) == 0 {
 		return ""
@@ -725,11 +610,8 @@ type extractionSnapshot struct {
 	Tools          []snapshotTool        `json:"tools"`
 	Agents         []snapshotAgent       `json:"agents"`
 	Todos          []model.TodoItem      `json:"todos"`
-	SkillNames     []string              `json:"skill_names,omitempty"`
 	TokenSamples   []snapshotTokenSample `json:"token_samples,omitempty"`
-	SessionName    string                `json:"session_name"`
 	ThinkingActive bool                  `json:"thinking_active"`
-	ThinkingCount  int                   `json:"thinking_count"`
 	SpinnerFrame   int                   `json:"spinner_frame"`
 	DividerOffset  int                   `json:"divider_offset"`
 	MessageCount   int                   `json:"message_count"`
@@ -796,9 +678,6 @@ func (es *ExtractionState) MarshalSnapshot() (json.RawMessage, error) {
 	todos := make([]model.TodoItem, len(es.todos))
 	copy(todos, es.todos)
 
-	skillNames := make([]string, len(es.skillNames))
-	copy(skillNames, es.skillNames)
-
 	tokenSamples := make([]snapshotTokenSample, 0, len(es.tokenSamples))
 	for _, s := range es.tokenSamples {
 		tokenSamples = append(tokenSamples, snapshotTokenSample{
@@ -811,11 +690,8 @@ func (es *ExtractionState) MarshalSnapshot() (json.RawMessage, error) {
 		Tools:          tools,
 		Agents:         agents,
 		Todos:          todos,
-		SkillNames:     skillNames,
 		TokenSamples:   tokenSamples,
-		SessionName:    es.sessionName,
 		ThinkingActive: es.thinkingActive,
-		ThinkingCount:  es.thinkingCount,
 		SpinnerFrame:   es.spinnerFrame,
 		DividerOffset:  es.dividerOffset,
 		MessageCount:   es.messageCount,
@@ -892,10 +768,6 @@ func (es *ExtractionState) UnmarshalSnapshot(data json.RawMessage) error {
 		}
 	}
 
-	if snap.SkillNames != nil {
-		es.skillNames = snap.SkillNames
-	}
-
 	es.tokenSamples = make([]model.TokenSample, 0, len(snap.TokenSamples))
 	for _, s := range snap.TokenSamples {
 		if s.Timestamp == "" {
@@ -911,9 +783,7 @@ func (es *ExtractionState) UnmarshalSnapshot(data json.RawMessage) error {
 		})
 	}
 
-	es.sessionName = snap.SessionName
 	es.thinkingActive = snap.ThinkingActive
-	es.thinkingCount = snap.ThinkingCount
 	es.spinnerFrame = snap.SpinnerFrame
 	es.dividerOffset = snap.DividerOffset
 	es.messageCount = snap.MessageCount

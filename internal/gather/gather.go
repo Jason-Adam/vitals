@@ -27,10 +27,7 @@ var transcriptWidgets = map[string]bool{
 	"tools":    true,
 	"agents":   true,
 	"todos":    true,
-	"thinking": true,
-	"session":  true,
 	"messages": true,
-	"skills":   true,
 	"speed":    true,
 }
 
@@ -62,9 +59,6 @@ func Gather(input *model.StdinData, cfg *config.Config) *model.RenderContext {
 		ctx.LinesAdded = input.Cost.TotalLinesAdded
 		ctx.LinesRemoved = input.Cost.TotalLinesRemoved
 	}
-	if input.OutputStyle != nil {
-		ctx.OutputStyle = input.OutputStyle.Name
-	}
 	if input.Worktree != nil {
 		ctx.WorktreeName = input.Worktree.Name
 	}
@@ -81,15 +75,6 @@ func Gather(input *model.StdinData, cfg *config.Config) *model.RenderContext {
 		go func() {
 			defer wg.Done()
 			ctx.Transcript = gatherTranscript(input.TranscriptPath)
-		}()
-	}
-
-	// Env goroutine: needed when the "env" widget is active.
-	if active["env"] {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			ctx.EnvCounts = config.CountEnv(input.Cwd)
 		}()
 	}
 
@@ -305,8 +290,7 @@ const subagentStaleThreshold = 30 * time.Second
 // transcript path ({dir}/{session-uuid}/subagents/) and returns lightweight
 // AgentEntry values based on file metadata alone.
 //
-// The approach mirrors .cloned-sources/tail-claude/parser/subagent.go:DiscoverSubagents
-// but avoids full file parsing. Status is inferred from modtime: files modified
+// Status is inferred from modtime: files modified
 // within subagentStaleThreshold are "running", others are "completed".
 func discoverSubagents(transcriptPath string) []model.AgentEntry {
 	dir := filepath.Dir(transcriptPath)

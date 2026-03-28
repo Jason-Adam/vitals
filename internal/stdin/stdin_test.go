@@ -155,12 +155,6 @@ func TestRead_CostFields_DecodedCorrectly(t *testing.T) {
 	if data.Cost.TotalLinesRemoved != 23 {
 		t.Errorf("TotalLinesRemoved: got %d, want 23", data.Cost.TotalLinesRemoved)
 	}
-	if data.OutputStyle == nil {
-		t.Fatal("expected non-nil OutputStyle")
-	}
-	if data.OutputStyle.Name != "auto" {
-		t.Errorf("OutputStyle.Name: got %q, want %q", data.OutputStyle.Name, "auto")
-	}
 }
 
 func TestRead_MissingCostObject_NilCost(t *testing.T) {
@@ -183,8 +177,5 @@ func TestRead_MissingCostObject_NilCost(t *testing.T) {
 	}
 	if data.Cost != nil {
 		t.Errorf("expected nil Cost when absent from JSON, got %+v", data.Cost)
-	}
-	if data.OutputStyle != nil {
-		t.Errorf("expected nil OutputStyle when absent from JSON, got %+v", data.OutputStyle)
 	}
 }

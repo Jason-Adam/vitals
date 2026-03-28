@@ -61,9 +61,6 @@ func MockStdinData(transcriptPath string) *model.StdinData {
 			TotalLinesAdded:    187,
 			TotalLinesRemoved:  42,
 		},
-		OutputStyle: &model.OutputStyle{
-			Name: "concise",
-		},
 		ContextPercent: 68,
 	}
 }

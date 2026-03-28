@@ -321,8 +321,7 @@ func currentProjectDir() (string, error) {
 
 // encodePath encodes an absolute filesystem path into a Claude Code project
 // directory name. Three characters are replaced with "-": path separators (/),
-// dots (.), and underscores (_). Ported from tail-claude's parser/session.go
-// and verified empirically across 273 project directories.
+// dots (.), and underscores (_). Verified empirically across 273 project directories.
 func encodePath(absPath string) string {
 	r := strings.NewReplacer(
 		string(filepath.Separator), "-",

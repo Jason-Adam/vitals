@@ -201,8 +201,7 @@ func BenchmarkRender_FullContext(b *testing.B) {
 		SessionStart:      "2026-03-15T09:00:00Z",
 		TerminalWidth:     200,
 		Transcript: &model.TranscriptData{
-			Path:        "/tmp/bench-session.jsonl",
-			SessionName: "Bench Session",
+			Path:  "/tmp/bench-session.jsonl",
 			Tools: []model.ToolEntry{
 				{Name: "Bash", Completed: true},
 				{Name: "Read", Completed: true},
@@ -219,12 +218,6 @@ func BenchmarkRender_FullContext(b *testing.B) {
 				{ID: "2", Content: "Write fixture file", Done: true},
 				{ID: "3", Content: "Run verification", Done: false},
 			},
-		},
-		EnvCounts: &model.EnvCounts{
-			MCPServers:    5,
-			ClaudeMdFiles: 4,
-			RuleFiles:     12,
-			Hooks:         16,
 		},
 		Git: &model.GitStatus{
 			Branch:   "feat/benchmarks",

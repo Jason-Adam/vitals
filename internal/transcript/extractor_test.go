@@ -643,92 +643,6 @@ func TestProcessEntry_TaskToolUse_NotInTools(t *testing.T) {
 	}
 }
 
-// ---- SessionName extraction -------------------------------------------------
-
-func TestProcessEntry_CustomTitle_SetsSessionName(t *testing.T) {
-	es := NewExtractionState()
-	var e Entry
-	e.Type = "custom-title"
-	e.CustomTitle = "My Session Title"
-	es.ProcessEntry(e)
-
-	data := es.ToTranscriptData()
-	if data.SessionName != "My Session Title" {
-		t.Errorf("expected SessionName=%q, got %q", "My Session Title", data.SessionName)
-	}
-}
-
-func TestProcessEntry_CustomTitle_EmptyValue_NoChange(t *testing.T) {
-	// A custom-title entry with an empty CustomTitle should not set the session name.
-	es := NewExtractionState()
-	var e Entry
-	e.Type = "custom-title"
-	e.CustomTitle = ""
-	es.ProcessEntry(e)
-
-	data := es.ToTranscriptData()
-	if data.SessionName != "" {
-		t.Errorf("expected empty SessionName when CustomTitle is empty, got %q", data.SessionName)
-	}
-}
-
-func TestProcessEntry_Slug_FallbackWhenNoCustomTitle(t *testing.T) {
-	// Slug is used as SessionName only when no custom-title has been seen.
-	es := NewExtractionState()
-	var e Entry
-	e.Type = "summary"
-	e.Slug = "slug-based-name"
-	es.ProcessEntry(e)
-
-	data := es.ToTranscriptData()
-	if data.SessionName != "slug-based-name" {
-		t.Errorf("expected SessionName=%q from slug, got %q", "slug-based-name", data.SessionName)
-	}
-}
-
-func TestProcessEntry_CustomTitle_TakesPriorityOverSlug(t *testing.T) {
-	// custom-title should override a previously-set slug.
-	es := NewExtractionState()
-
-	// First: a slug from an earlier entry.
-	var slugEntry Entry
-	slugEntry.Type = "summary"
-	slugEntry.Slug = "slug-name"
-	es.ProcessEntry(slugEntry)
-
-	// Then: a custom-title entry arrives.
-	var titleEntry Entry
-	titleEntry.Type = "custom-title"
-	titleEntry.CustomTitle = "Proper Title"
-	es.ProcessEntry(titleEntry)
-
-	data := es.ToTranscriptData()
-	if data.SessionName != "Proper Title" {
-		t.Errorf("expected custom-title to override slug, got %q", data.SessionName)
-	}
-}
-
-func TestProcessEntry_Slug_NotOverridenByLaterSlug(t *testing.T) {
-	// Once a slug is set, a later entry with a different slug should not change it
-	// (slug is first-seen wins when no custom-title is present).
-	es := NewExtractionState()
-
-	var e1 Entry
-	e1.Type = "summary"
-	e1.Slug = "first-slug"
-	es.ProcessEntry(e1)
-
-	var e2 Entry
-	e2.Type = "summary"
-	e2.Slug = "second-slug"
-	es.ProcessEntry(e2)
-
-	data := es.ToTranscriptData()
-	if data.SessionName != "first-slug" {
-		t.Errorf("expected first slug to be retained, got %q", data.SessionName)
-	}
-}
-
 // ---- Tool duration computation from timestamp deltas -----------------------
 
 func TestToolDuration_ComputedFromTimestampDelta(t *testing.T) {
@@ -864,141 +778,6 @@ func TestAgentType_FallsBackToToolName(t *testing.T) {
 				t.Errorf("expected Name=%q, got %q", tc.toolName, data.Agents[0].Name)
 			}
 		})
-	}
-}
-
-// ---- Thinking block detection (specs 5 & 6) --------------------------------
-
-// makeThinkingEntry builds an Entry with a thinking block only (no tool_use, no text).
-func makeThinkingEntry() Entry {
-	content, _ := json.Marshal([]interface{}{
-		map[string]interface{}{"type": "thinking", "thinking": "Let me consider this..."},
-	})
-	var e Entry
-	e.Message.Role = "assistant"
-	e.Message.Content = content
-	e.Timestamp = "2025-01-15T10:00:00Z"
-	return e
-}
-
-// makeThinkingThenToolUseEntry builds an Entry with a thinking block followed by a tool_use.
-func makeThinkingThenToolUseEntry(toolID, toolName string, input map[string]interface{}) Entry {
-	inputJSON, _ := json.Marshal(input)
-	content, _ := json.Marshal([]interface{}{
-		map[string]interface{}{"type": "thinking", "thinking": "Let me use a tool"},
-		map[string]interface{}{
-			"type":  "tool_use",
-			"id":    toolID,
-			"name":  toolName,
-			"input": json.RawMessage(inputJSON),
-		},
-	})
-	var e Entry
-	e.Message.Role = "assistant"
-	e.Message.Content = content
-	e.Timestamp = "2025-01-15T10:00:01Z"
-	return e
-}
-
-// makeThinkingThenTextEntry builds an Entry with a thinking block followed by a text block.
-func makeThinkingThenTextEntry() Entry {
-	content, _ := json.Marshal([]interface{}{
-		map[string]interface{}{"type": "thinking", "thinking": "Let me respond"},
-		map[string]interface{}{"type": "text", "text": "Here is my answer."},
-	})
-	var e Entry
-	e.Message.Role = "assistant"
-	e.Message.Content = content
-	e.Timestamp = "2025-01-15T10:00:02Z"
-	return e
-}
-
-func TestThinking_ActiveWhenOnlyThinkingBlock(t *testing.T) {
-	es := NewExtractionState()
-	es.ProcessEntry(makeThinkingEntry())
-
-	data := es.ToTranscriptData()
-	if !data.ThinkingActive {
-		t.Error("expected ThinkingActive=true when last message contained only a thinking block")
-	}
-	if data.ThinkingCount != 1 {
-		t.Errorf("expected ThinkingCount=1, got %d", data.ThinkingCount)
-	}
-}
-
-func TestThinking_CountAccumulates(t *testing.T) {
-	es := NewExtractionState()
-	es.ProcessEntry(makeThinkingEntry())
-	es.ProcessEntry(makeThinkingEntry())
-	es.ProcessEntry(makeThinkingEntry())
-
-	data := es.ToTranscriptData()
-	if data.ThinkingCount != 3 {
-		t.Errorf("expected ThinkingCount=3, got %d", data.ThinkingCount)
-	}
-}
-
-func TestThinking_ActiveClearedWhenToolUseFollows(t *testing.T) {
-	// A thinking block in the same message as a tool_use should not be active.
-	es := NewExtractionState()
-	es.ProcessEntry(makeThinkingThenToolUseEntry("id-1", "Read", map[string]interface{}{"file_path": "x.go"}))
-
-	data := es.ToTranscriptData()
-	if data.ThinkingActive {
-		t.Error("expected ThinkingActive=false when thinking block is followed by tool_use in the same message")
-	}
-	// Count still increments — thinking happened even if not active.
-	if data.ThinkingCount != 1 {
-		t.Errorf("expected ThinkingCount=1, got %d", data.ThinkingCount)
-	}
-}
-
-func TestThinking_ActiveClearedWhenTextFollows(t *testing.T) {
-	// A thinking block followed by text in the same message should not be active.
-	es := NewExtractionState()
-	es.ProcessEntry(makeThinkingThenTextEntry())
-
-	data := es.ToTranscriptData()
-	if data.ThinkingActive {
-		t.Error("expected ThinkingActive=false when thinking block is followed by text in the same message")
-	}
-	if data.ThinkingCount != 1 {
-		t.Errorf("expected ThinkingCount=1, got %d", data.ThinkingCount)
-	}
-}
-
-func TestThinking_ActiveSetThenClearedBySubsequentToolUse(t *testing.T) {
-	// First entry: thinking only (active=true).
-	// Second entry: tool_use only (active=false).
-	es := NewExtractionState()
-	es.ProcessEntry(makeThinkingEntry())
-
-	data := es.ToTranscriptData()
-	if !data.ThinkingActive {
-		t.Fatal("expected ThinkingActive=true after first entry")
-	}
-
-	es.ProcessEntry(makeToolUseEntry("id-1", "Read", map[string]interface{}{"file_path": "x.go"}))
-	data = es.ToTranscriptData()
-	if data.ThinkingActive {
-		t.Error("expected ThinkingActive=false after a subsequent tool_use entry")
-	}
-	// Count should still be 1 (only the first entry had a thinking block).
-	if data.ThinkingCount != 1 {
-		t.Errorf("expected ThinkingCount=1, got %d", data.ThinkingCount)
-	}
-}
-
-func TestThinking_NoThinkingBlocks_ActiveFalse(t *testing.T) {
-	es := NewExtractionState()
-	es.ProcessEntry(makeToolUseEntry("id-1", "Bash", map[string]interface{}{"command": "ls"}))
-
-	data := es.ToTranscriptData()
-	if data.ThinkingActive {
-		t.Error("expected ThinkingActive=false when no thinking blocks present")
-	}
-	if data.ThinkingCount != 0 {
-		t.Errorf("expected ThinkingCount=0, got %d", data.ThinkingCount)
 	}
 }
 
@@ -1145,37 +924,6 @@ func TestMarshalUnmarshalSnapshot_TodosRoundTrip(t *testing.T) {
 	}
 	if data.Todos[1].Done != true {
 		t.Error("expected second todo Done=true after restore")
-	}
-}
-
-func TestMarshalUnmarshalSnapshot_SessionNameAndThinking(t *testing.T) {
-	es1 := NewExtractionState()
-	var titleEntry Entry
-	titleEntry.Type = "custom-title"
-	titleEntry.CustomTitle = "My Session"
-	es1.ProcessEntry(titleEntry)
-	es1.ProcessEntry(makeThinkingEntry())
-	es1.ProcessEntry(makeThinkingEntry())
-
-	snap, err := es1.MarshalSnapshot()
-	if err != nil {
-		t.Fatalf("MarshalSnapshot: %v", err)
-	}
-
-	es2 := NewExtractionState()
-	if err := es2.UnmarshalSnapshot(snap); err != nil {
-		t.Fatalf("UnmarshalSnapshot: %v", err)
-	}
-
-	data := es2.ToTranscriptData()
-	if data.SessionName != "My Session" {
-		t.Errorf("expected SessionName=My Session, got %q", data.SessionName)
-	}
-	if data.ThinkingCount != 2 {
-		t.Errorf("expected ThinkingCount=2, got %d", data.ThinkingCount)
-	}
-	if !data.ThinkingActive {
-		t.Error("expected ThinkingActive=true after restore")
 	}
 }
 
@@ -2240,182 +1988,6 @@ func TestMessageCount_PersistedInSnapshot(t *testing.T) {
 	}
 }
 
-// ---- Skills extraction -----------------------------------------------------
-
-// makeSkillEntry creates a user message with the <command-name>/skill</command-name>
-// format that Claude Code uses for slash-command invocations.
-func makeSkillEntry(skill string) Entry {
-	content := fmt.Appendf(nil, `"<command-message>%s</command-message>\n<command-name>/%s</command-name>"`, skill, skill)
-	var e Entry
-	e.Message.Role = "user"
-	e.Message.Content = content
-	e.Timestamp = "2024-01-01T00:00:00Z"
-	return e
-}
-
-func TestSkills_NoSkills_EmptySlice(t *testing.T) {
-	es := NewExtractionState()
-	es.ProcessEntry(makeToolUseEntry("id-1", "Read", map[string]interface{}{"file_path": "main.go"}))
-
-	data := es.ToTranscriptData()
-	if len(data.SkillNames) != 0 {
-		t.Errorf("expected no skill names, got %v", data.SkillNames)
-	}
-}
-
-func TestSkills_SingleSkill_RecordsName(t *testing.T) {
-	es := NewExtractionState()
-	es.ProcessEntry(makeSkillEntry("commit"))
-
-	data := es.ToTranscriptData()
-	if len(data.SkillNames) != 1 {
-		t.Fatalf("expected 1 skill name, got %d", len(data.SkillNames))
-	}
-	if data.SkillNames[0] != "commit" {
-		t.Errorf("expected skill name 'commit', got %q", data.SkillNames[0])
-	}
-}
-
-func TestSkills_AssistantSkillToolUse_RecordsName(t *testing.T) {
-	// Skills invoked by the assistant via the Skill tool appear as tool_use
-	// blocks with name=="Skill" and input.skill containing the skill name.
-	es := NewExtractionState()
-	es.ProcessEntry(makeToolUseEntry("skill-1", "Skill", map[string]any{
-		"skill": "simplify",
-	}))
-
-	data := es.ToTranscriptData()
-	if len(data.SkillNames) != 1 {
-		t.Fatalf("expected 1 skill name, got %d", len(data.SkillNames))
-	}
-	if data.SkillNames[0] != "simplify" {
-		t.Errorf("expected skill name 'simplify', got %q", data.SkillNames[0])
-	}
-}
-
-func TestSkills_BothPaths_RecordsBoth(t *testing.T) {
-	// User-typed slash command + assistant Skill tool_use should both record.
-	es := NewExtractionState()
-	es.ProcessEntry(makeSkillEntry("hud"))
-	es.ProcessEntry(makeToolUseEntry("skill-1", "Skill", map[string]any{
-		"skill": "simplify",
-	}))
-
-	data := es.ToTranscriptData()
-	if len(data.SkillNames) != 2 {
-		t.Fatalf("expected 2 skill names, got %d", len(data.SkillNames))
-	}
-	if data.SkillNames[0] != "hud" || data.SkillNames[1] != "simplify" {
-		t.Errorf("unexpected skill names: %v", data.SkillNames)
-	}
-}
-
-func TestSkills_MultipleSkills_RecordsAllInOrder(t *testing.T) {
-	es := NewExtractionState()
-	skills := []string{"commit", "review-pr", "lint"}
-	for _, s := range skills {
-		es.ProcessEntry(makeSkillEntry(s))
-	}
-
-	data := es.ToTranscriptData()
-	if len(data.SkillNames) != 3 {
-		t.Fatalf("expected 3 skill names, got %d", len(data.SkillNames))
-	}
-	for i, want := range skills {
-		if data.SkillNames[i] != want {
-			t.Errorf("SkillNames[%d]: expected %q, got %q", i, want, data.SkillNames[i])
-		}
-	}
-}
-
-func TestSkills_NamespacedSkill_FullNamePreserved(t *testing.T) {
-	// Skills use a "namespace:skill-name" format; the full string should be
-	// stored without modification.
-	es := NewExtractionState()
-	es.ProcessEntry(makeSkillEntry("my-plugin:deploy"))
-
-	data := es.ToTranscriptData()
-	if len(data.SkillNames) != 1 {
-		t.Fatalf("expected 1 skill name, got %d", len(data.SkillNames))
-	}
-	if data.SkillNames[0] != "my-plugin:deploy" {
-		t.Errorf("expected 'my-plugin:deploy', got %q", data.SkillNames[0])
-	}
-}
-
-func TestSkills_Cap_KeepsLast20(t *testing.T) {
-	es := NewExtractionState()
-	for i := 0; i < 25; i++ {
-		es.ProcessEntry(makeSkillEntry(fmt.Sprintf("skill-%d", i)))
-	}
-
-	data := es.ToTranscriptData()
-	if len(data.SkillNames) != 20 {
-		t.Fatalf("expected 20 skill names (cap), got %d", len(data.SkillNames))
-	}
-	// Should contain the last 20: skill-5 through skill-24.
-	if data.SkillNames[0] != "skill-5" {
-		t.Errorf("expected oldest kept skill to be 'skill-5', got %q", data.SkillNames[0])
-	}
-	if data.SkillNames[19] != "skill-24" {
-		t.Errorf("expected newest skill to be 'skill-24', got %q", data.SkillNames[19])
-	}
-}
-
-func TestSkills_NoCommandNameTag_Ignored(t *testing.T) {
-	// A user message without <command-name> should not produce skill names.
-	es := NewExtractionState()
-	es.ProcessEntry(makeTextEntry("user", "just a normal message"))
-
-	data := es.ToTranscriptData()
-	if len(data.SkillNames) != 0 {
-		t.Errorf("expected no skill names, got %v", data.SkillNames)
-	}
-}
-
-func TestSkills_EmbeddedCommandNameTag_Ignored(t *testing.T) {
-	// A user message that quotes <command-name> in prose (e.g. agent results
-	// discussing the tag format) should not be mistaken for a skill invocation.
-	es := NewExtractionState()
-	prose := `The tag format is <command-name>/...</command-name> for skills.`
-	// Build a raw JSON string entry (not an array).
-	content := fmt.Appendf(nil, `%q`, prose)
-	var e Entry
-	e.Message.Role = "user"
-	e.Message.Content = content
-	e.Timestamp = "2024-01-01T00:00:00Z"
-	es.ProcessEntry(e)
-
-	data := es.ToTranscriptData()
-	if len(data.SkillNames) != 0 {
-		t.Errorf("expected no skill names from embedded tag, got %v", data.SkillNames)
-	}
-}
-
-func TestSkills_SnapshotRoundTrip_PreservesSkillNames(t *testing.T) {
-	es := NewExtractionState()
-	es.ProcessEntry(makeSkillEntry("commit"))
-	es.ProcessEntry(makeSkillEntry("review-pr"))
-
-	snap, err := es.MarshalSnapshot()
-	if err != nil {
-		t.Fatalf("MarshalSnapshot: %v", err)
-	}
-
-	es2 := NewExtractionState()
-	if err := es2.UnmarshalSnapshot(snap); err != nil {
-		t.Fatalf("UnmarshalSnapshot: %v", err)
-	}
-
-	data := es2.ToTranscriptData()
-	if len(data.SkillNames) != 2 {
-		t.Fatalf("expected 2 skill names after round-trip, got %d", len(data.SkillNames))
-	}
-	if data.SkillNames[0] != "commit" || data.SkillNames[1] != "review-pr" {
-		t.Errorf("unexpected skill names after round-trip: %v", data.SkillNames)
-	}
-}
-
 // ---- Token sample extraction -----------------------------------------------
 
 // makeAssistantEntryWithUsage builds an assistant Entry with a usage field.
@@ -2548,6 +2120,39 @@ func TestTokenSamples_PersistedThroughSnapshot(t *testing.T) {
 	if data.TokenSamples[1].Tokens != 800 {
 		t.Errorf("sample[1].Tokens = %d, want 800", data.TokenSamples[1].Tokens)
 	}
+}
+
+// ---- Thinking helper constructors ------------------------------------------
+
+// makeThinkingEntry builds an Entry with a thinking block only (no tool_use, no text).
+func makeThinkingEntry() Entry {
+	content, _ := json.Marshal([]interface{}{
+		map[string]interface{}{"type": "thinking", "thinking": "Let me consider this..."},
+	})
+	var e Entry
+	e.Message.Role = "assistant"
+	e.Message.Content = content
+	e.Timestamp = "2025-01-15T10:00:00Z"
+	return e
+}
+
+// makeThinkingThenToolUseEntry builds an Entry with a thinking block followed by a tool_use.
+func makeThinkingThenToolUseEntry(toolID, toolName string, input map[string]interface{}) Entry {
+	inputJSON, _ := json.Marshal(input)
+	content, _ := json.Marshal([]interface{}{
+		map[string]interface{}{"type": "thinking", "thinking": "Let me use a tool"},
+		map[string]interface{}{
+			"type":  "tool_use",
+			"id":    toolID,
+			"name":  toolName,
+			"input": json.RawMessage(inputJSON),
+		},
+	})
+	var e Entry
+	e.Message.Role = "assistant"
+	e.Message.Content = content
+	e.Timestamp = "2025-01-15T10:00:01Z"
+	return e
 }
 
 // ---- Thinking as ToolEntry (specs: thinking emitted as tool entry) ----

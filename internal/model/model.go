@@ -36,10 +36,6 @@ type RenderContext struct {
 	LinesAdded      int
 	LinesRemoved    int
 
-	// OutputStyle is the current output style name (e.g. "auto", "verbose").
-	// Empty string when not provided by Claude Code.
-	OutputStyle string
-
 	// WorktreeName is the name of the current worktree, if any.
 	// Empty when not running inside a worktree.
 	WorktreeName string
@@ -55,7 +51,6 @@ type RenderContext struct {
 
 	// Pointer fields — all may be nil when the corresponding data is unavailable.
 	Transcript *TranscriptData
-	EnvCounts  *EnvCounts
 	Git        *GitStatus
 
 	// Usage holds rate-limit utilization data from stdin.
@@ -82,28 +77,14 @@ type TokenSample struct {
 
 // TranscriptData holds parsed information from the Claude Code transcript.
 type TranscriptData struct {
-	Path        string
-	SessionName string
-	Tools       []ToolEntry
-	Agents      []AgentEntry
-	Todos       []TodoItem
-	// SkillNames is the ordered list of skill names invoked in the session
-	// (newest last), capped at 20. Each entry is the skill name extracted
-	// from <command-name>/skill</command-name> tags in user messages.
-	SkillNames []string
+	Path   string
+	Tools  []ToolEntry
+	Agents []AgentEntry
+	Todos  []TodoItem
 
 	// TokenSamples holds timestamp+token pairs extracted from assistant messages.
 	// Used by the speed widget to compute a rolling tokens/sec average.
 	TokenSamples []TokenSample
-
-	// ThinkingActive is true when the most recent assistant message contained a
-	// thinking block that was not followed by a tool_use or text block in the
-	// same message.
-	ThinkingActive bool
-
-	// ThinkingCount is the total number of thinking blocks observed across all
-	// assistant messages in the session.
-	ThinkingCount int
 
 	// SpinnerFrame is a monotonic counter incremented on each statusline invocation.
 	// Widgets use it instead of wall-clock time to guarantee spinner advancement
@@ -151,15 +132,6 @@ type TodoItem struct {
 	Done    bool
 }
 
-// EnvCounts holds counts of active Claude Code environment config items,
-// broken down by category.
-type EnvCounts struct {
-	MCPServers    int // unique MCP server names across all settings files
-	ClaudeMdFiles int // CLAUDE.md files found at standard paths
-	RuleFiles     int // .md files under ~/.claude/rules and {cwd}/.claude/rules
-	Hooks         int // non-empty hook event arrays across settings files
-}
-
 // GitStatus holds the current git repository state for the working directory.
 type GitStatus struct {
 	Branch    string
@@ -187,11 +159,6 @@ type Cost struct {
 	TotalLinesRemoved  int     `json:"total_lines_removed"`
 }
 
-// OutputStyle holds the current output style configuration from Claude Code.
-type OutputStyle struct {
-	Name string `json:"name"`
-}
-
 // StdinData is the raw decoded form of the JSON blob Claude Code pipes to stdin.
 // It is produced by the stdin package and then transformed into RenderContext fields.
 type StdinData struct {
@@ -214,9 +181,6 @@ type StdinData struct {
 
 	// Cost is nil when Claude Code does not include cost data in the stdin payload.
 	Cost *Cost `json:"cost"`
-
-	// OutputStyle is nil when Claude Code does not include output_style in the stdin payload.
-	OutputStyle *OutputStyle `json:"output_style"`
 
 	// RateLimits is nil on older Claude Code versions or for API users.
 	// When present, it provides rate-limit utilization directly from stdin,
