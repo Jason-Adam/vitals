@@ -97,11 +97,6 @@ func usageWindow(label string, pct int, resetAt time.Time, cfg *config.Config) u
 // Per-element helpers. Each returns (styled, plain). Return ("", "") to omit.
 // ---------------------------------------------------------------------------
 
-// usageLabel renders the window identifier: "5h" or "7d".
-func usageLabel(label string) (string, string) {
-	return DimStyle.Render(label), label
-}
-
 // usageIcon renders the circle-slice fill icon colored by severity.
 func usageIcon(pct int, style lipgloss.Style) (string, string) {
 	icon := percentToIcon(pct)

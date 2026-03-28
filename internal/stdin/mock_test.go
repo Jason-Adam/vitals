@@ -86,4 +86,3 @@ func TestMockStdinData_ContextWindowValues(t *testing.T) {
 		t.Errorf("CacheReadInputTokens: got %d, want 8000", data.ContextWindow.CurrentUsage.CacheReadInputTokens)
 	}
 }
-

@@ -19,8 +19,9 @@ func Project(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	dir := Directory(ctx, cfg)
 	git := Git(ctx, cfg)
 
-	// In a worktree the project name is redundant — just show branch info.
-	if ctx.WorktreeName != "" {
+	// When the service widget is active or we're in a worktree, the directory
+	// name is handled elsewhere — just show branch info.
+	if ctx.WorktreeName != "" || ctx.ServiceName != "" {
 		if git.IsEmpty() {
 			return WidgetResult{}
 		}

@@ -6,17 +6,17 @@ vitals is a Go binary that renders a terminal statusline for Claude Code session
 
 ## Build & Test
 
-Uses `just` (justfile) for all tasks:
+Uses `make` for all tasks:
 
 ```sh
-just              # default: run tests
-just build        # go install ./cmd/vitals
-just test         # go test ./... -count=1
-just test-race    # go test -race ./... -count=1
-just bench        # go test -bench=. -benchmem ./internal/... -count=1
-just check        # fmt + vet + test
-just dump         # build + render from current session's transcript
-just run-sample   # pipe testdata/sample-stdin.json through the binary
+make              # default: run tests
+make build        # go install ./cmd/vitals
+make test         # go test ./... -count=1
+make test-race    # go test -race ./... -count=1
+make bench        # go test -bench=. -benchmem ./internal/... -count=1
+make check        # fmt + vet + test
+make dump         # build + render from current session's transcript
+make run-sample   # pipe testdata/sample-stdin.json through the binary
 ```
 
 Run a single test:
@@ -38,7 +38,7 @@ stdin → gather → render → stdout
 
 3. **render** (`internal/render`): Walks configured lines, calls each widget's `RenderFunc` from the registry, joins non-empty results with the separator, and ANSI-truncates to terminal width.
 
-4. **widget** (`internal/render/widget`): 16 registered widgets (model, context, cost, directory, git, project, duration, tools, agents, todos, tokens, lines, messages, speed, permission, usage). Each is a pure function: `(RenderContext, Config) -> WidgetResult`. Returns empty when it has nothing to show.
+4. **widget** (`internal/render/widget`): 18 registered widgets (model, context, cost, directory, git, project, service, duration, tools, agents, todos, tokens, lines, messages, speed, permission, usage, worktree). Each is a pure function: `(RenderContext, Config) -> WidgetResult`. Returns empty when it has nothing to show.
 
 ## Key Design Decisions
 

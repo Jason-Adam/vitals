@@ -254,7 +254,7 @@ func renderToolEntryWithMultiplier(icons Icons, t model.ToolEntry, count int) st
 		if t.Category == "Thinking" {
 			return fmt.Sprintf("%s %s%s", yellowStyle.Render(catIcon), DimStyle.Render(t.Name), DimStyle.Render(mult))
 		}
-		return yellowStyle.Bold(true).Render(toolLabel(catIcon, t.Name)+mult)
+		return yellowStyle.Bold(true).Render(toolLabel(catIcon, t.Name) + mult)
 	}
 
 	if t.HasError {

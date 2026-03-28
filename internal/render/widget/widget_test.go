@@ -508,7 +508,7 @@ func TestDirectoryWidget_EmptyCwd(t *testing.T) {
 }
 
 func TestRegistryHasAllWidgets(t *testing.T) {
-	expected := []string{"model", "context", "directory", "git", "project", "duration", "tools", "agents", "todos", "tokens", "cost", "lines", "messages", "speed", "permission", "usage", "worktree"}
+	expected := []string{"model", "context", "directory", "git", "project", "duration", "tools", "agents", "todos", "tokens", "cost", "lines", "messages", "speed", "permission", "service", "usage", "worktree"}
 	for _, name := range expected {
 		if _, ok := Registry[name]; !ok {
 			t.Errorf("Registry missing widget %q", name)
@@ -1952,7 +1952,6 @@ func TestWidgetResult_IsEmpty(t *testing.T) {
 		t.Error("WidgetResult with only FgColor should still be empty")
 	}
 }
-
 
 // -- percentToIcon ------------------------------------------------------------
 

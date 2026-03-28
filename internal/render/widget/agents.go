@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/x/ansi"
 	"github.com/Jason-Adam/vitals/internal/config"
 	"github.com/Jason-Adam/vitals/internal/model"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // agentSeparator is the text between agent entries.

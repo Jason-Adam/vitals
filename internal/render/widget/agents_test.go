@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/charmbracelet/x/ansi"
 	"github.com/Jason-Adam/vitals/internal/model"
+	"github.com/charmbracelet/x/ansi"
 )
 
 func longAgent(name string, status string) model.AgentEntry {
