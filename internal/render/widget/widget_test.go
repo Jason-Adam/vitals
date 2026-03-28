@@ -1489,9 +1489,12 @@ func TestDirectoryWidget_StyleFull(t *testing.T) {
 
 func TestDirectoryWidget_StyleFish(t *testing.T) {
 	// Fish style abbreviates intermediate segments to first char.
-	// Home dir (/Users/kyle) is replaced with ~ first, so the path becomes
-	// ~/Code/my-projects/vitals, then fish gives ~/C/m/vitals.
-	ctx := &model.RenderContext{Cwd: "/Users/kyle/Code/my-projects/vitals"}
+	// Home dir is replaced with ~ first, then fish abbreviates intermediates.
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("failed to get home dir: %v", err)
+	}
+	ctx := &model.RenderContext{Cwd: home + "/Code/my-projects/vitals"}
 	cfg := defaultCfg()
 	cfg.Directory.Style = "fish"
 
