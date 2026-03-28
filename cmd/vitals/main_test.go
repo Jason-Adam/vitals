@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"image/color"
 	"os"
 	"path/filepath"
 	"strings"
@@ -257,6 +258,30 @@ func TestWatchAndRender_DetectsFileChange(t *testing.T) {
 	// The clear-screen escape should appear in the captured output if a re-render occurred.
 	if !strings.Contains(buf.String(), "\x1b[2J") {
 		t.Error("expected clear-screen ANSI sequence in output after file change")
+	}
+}
+
+func TestIsLightColor(t *testing.T) {
+	tests := []struct {
+		name string
+		c    color.Color
+		want bool
+	}{
+		{"black", color.Black, false},
+		{"white", color.White, true},
+		{"dark gray", color.RGBA{R: 64, G: 64, B: 64, A: 255}, false},
+		{"light gray", color.RGBA{R: 192, G: 192, B: 192, A: 255}, true},
+		{"mid gray below threshold", color.RGBA{R: 126, G: 126, B: 126, A: 255}, false},
+		{"mid gray at threshold", color.RGBA{R: 128, G: 128, B: 128, A: 255}, true},
+		{"pure red", color.RGBA{R: 255, G: 0, B: 0, A: 255}, true},
+		{"dark blue", color.RGBA{R: 0, G: 0, B: 128, A: 255}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isLightColor(tt.c); got != tt.want {
+				t.Errorf("isLightColor(%v) = %v, want %v", tt.c, got, tt.want)
+			}
+		})
 	}
 }
 
