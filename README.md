@@ -27,7 +27,7 @@ To customize, run `vitals --init` to generate a config at `~/.config/vitals/conf
 
 ```bash
 # Install pre-commit hooks
-pip install pre-commit
+brew install pre-commit
 pre-commit install
 
 # Run tests
