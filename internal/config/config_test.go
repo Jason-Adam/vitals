@@ -290,26 +290,6 @@ func TestDefaultLayoutIsTwoLines(t *testing.T) {
 	assertWidgets(t, cfg.Lines[1].Widgets, []string{"agents"})
 }
 
-// TestDefaultEnvWidgetAbsent verifies that "env" is not present in the default layout
-// (it remains available as an opt-in widget but is not shown by default).
-func TestDefaultEnvWidgetAbsent(t *testing.T) {
-	tmp := t.TempDir()
-	t.Setenv("HOME", tmp)
-
-	cfg := LoadHud()
-	if cfg == nil {
-		t.Fatal("LoadHud returned nil")
-	}
-
-	for i, line := range cfg.Lines {
-		for _, w := range line.Widgets {
-			if w == "env" {
-				t.Errorf("default layout line %d contains 'env' widget; it should be opt-in only", i+1)
-			}
-		}
-	}
-}
-
 // TestDefaultThemeIsResolved verifies that LoadHud populates ResolvedTheme
 // from the default theme when no config file is present.
 func TestDefaultThemeIsResolved(t *testing.T) {

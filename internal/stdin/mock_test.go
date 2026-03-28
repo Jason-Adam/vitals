@@ -18,9 +18,6 @@ func TestMockStdinData_NonNilFields(t *testing.T) {
 	if data.Cost == nil {
 		t.Error("Cost must be non-nil")
 	}
-	if data.OutputStyle == nil {
-		t.Error("OutputStyle must be non-nil")
-	}
 }
 
 func TestMockStdinData_TranscriptPath(t *testing.T) {
@@ -90,9 +87,3 @@ func TestMockStdinData_ContextWindowValues(t *testing.T) {
 	}
 }
 
-func TestMockStdinData_OutputStyle(t *testing.T) {
-	data := MockStdinData("")
-	if data.OutputStyle.Name != "concise" {
-		t.Errorf("OutputStyle.Name: got %q, want %q", data.OutputStyle.Name, "concise")
-	}
-}

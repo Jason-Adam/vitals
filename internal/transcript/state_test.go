@@ -474,16 +474,12 @@ func TestStateManager_SnapshotPersistedAndRestored(t *testing.T) {
 		Tools []struct {
 			Name string `json:"name"`
 		} `json:"tools"`
-		SessionName string `json:"session_name"`
 	}
 	if err := json.Unmarshal(snap, &loaded); err != nil {
 		t.Fatalf("unmarshal loaded snapshot: %v", err)
 	}
 	if len(loaded.Tools) != 1 || loaded.Tools[0].Name != "Read" {
 		t.Errorf("expected snapshot to contain Read tool, got %+v", loaded.Tools)
-	}
-	if loaded.SessionName != "test-session" {
-		t.Errorf("expected session_name=test-session, got %q", loaded.SessionName)
 	}
 }
 

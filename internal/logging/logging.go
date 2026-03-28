@@ -1,6 +1,6 @@
 // Package logging provides a debug file logger gated behind an environment variable.
 //
-// Set TAIL_CLAUDE_HUD_DEBUG=1 to enable logging. All output goes to
+// Set VITALS_DEBUG=1 to enable logging. All output goes to
 // ~/.claude/plugins/vitals/debug.log. Nothing is ever written to
 // stderr — writing to stderr corrupts Claude Code's terminal layout because
 // Claude Code uses the terminal directly and does not separate stderr from the
@@ -28,7 +28,7 @@ var (
 // Errors opening the file are silently swallowed — the process must never crash
 // or write to stderr because of a missing log directory.
 func init() {
-	if os.Getenv("TAIL_CLAUDE_HUD_DEBUG") != "1" {
+	if os.Getenv("VITALS_DEBUG") != "1" {
 		return
 	}
 	enabled = true
@@ -55,7 +55,7 @@ func getLogger() *log.Logger {
 	return logger
 }
 
-// Debug writes a formatted log line when TAIL_CLAUDE_HUD_DEBUG=1.
+// Debug writes a formatted log line when VITALS_DEBUG=1.
 // It is a no-op when the env var is unset or empty.
 func Debug(format string, args ...any) {
 	if !enabled {

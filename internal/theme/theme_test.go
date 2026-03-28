@@ -135,8 +135,8 @@ func TestBuiltinNames_complete(t *testing.T) {
 }
 
 func TestAllBuiltinThemesHaveAllWidgets(t *testing.T) {
-	widgets := []string{"model", "context", "directory", "git", "project", "env",
-		"duration", "tools", "agents", "todos", "session", "thinking"}
+	widgets := []string{"model", "context", "directory", "git", "project",
+		"duration", "tools", "agents", "todos", "cost"}
 
 	for _, name := range BuiltinNames() {
 		th := Load(name)

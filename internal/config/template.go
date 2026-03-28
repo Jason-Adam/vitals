@@ -31,16 +31,11 @@ const DefaultTemplate = `# vitals configuration
 #   duration    — elapsed session time
 #   agents      — per-agent activity feed (requires transcript)
 #   tools       — recent tool use feed, including thinking blocks (requires transcript)
-#   thinking    — thinking-block indicator; yellow while active, dim with count when done (requires transcript)
 #   tokens      — per-call token count and cache hit ratio (requires transcript)
 #   lines       — lines added/removed this session
 #   messages    — conversational turn count (requires transcript)
-#   skills      — skills invoked this session, newest-first (requires transcript)
-#   session     — session name (requires transcript)
-#   outputstyle — current output style name (e.g. "concise")
 #   git         — full repository state (dirty, ahead/behind, file stats)
 #   directory   — current working directory path
-#   env         — environment variable counts (opt-in)
 #   speed       — rolling tokens/sec average (requires transcript)
 #   permission  — red alert when another Claude session is waiting for permission
 #   usage       — Anthropic rate-limit utilization (5-hour and 7-day windows)

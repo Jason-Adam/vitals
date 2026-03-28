@@ -201,8 +201,7 @@ func BenchmarkRender_FullContext(b *testing.B) {
 		SessionStart:      "2026-03-15T09:00:00Z",
 		TerminalWidth:     200,
 		Transcript: &model.TranscriptData{
-			Path:        "/tmp/bench-session.jsonl",
-			SessionName: "Bench Session",
+			Path:  "/tmp/bench-session.jsonl",
 			Tools: []model.ToolEntry{
 				{Name: "Bash", Completed: true},
 				{Name: "Read", Completed: true},
@@ -219,12 +218,6 @@ func BenchmarkRender_FullContext(b *testing.B) {
 				{ID: "2", Content: "Write fixture file", Done: true},
 				{ID: "3", Content: "Run verification", Done: false},
 			},
-		},
-		EnvCounts: &model.EnvCounts{
-			MCPServers:    5,
-			ClaudeMdFiles: 4,
-			RuleFiles:     12,
-			Hooks:         16,
 		},
 		Git: &model.GitStatus{
 			Branch:   "feat/benchmarks",
@@ -248,10 +241,10 @@ func BenchmarkRender_FullContext(b *testing.B) {
 // BenchmarkFullPipeline_WithTranscript measures the wall-clock cost of the
 // complete Gather+Render pipeline with realistic inputs: stdin JSON → state file
 // → transcript delta → parse → restore snapshot → process → marshal → save state
-// → gather (transcript+git+env in parallel) → render → ANSI truncate → stdout.
+// → gather (transcript+git in parallel) → render → ANSI truncate → stdout.
 //
-// The transcript file is 100 lines (typical mid-session size). Git and env
-// collection run against the actual repo directory so this benchmark includes
+// The transcript file is 100 lines (typical mid-session size). Git
+// collection runs against the actual repo directory so this benchmark includes
 // real subprocess and filesystem latency — it is intentionally end-to-end.
 //
 // OVER 10ms THRESHOLD: Measured ~18ms on Apple M3 Max (darwin/arm64). The git

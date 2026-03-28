@@ -1,25 +1,13 @@
 # vitals
 
-A terminal statusline for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sessions. Shows model, context usage, tools, agents, todos, git status, and more -- updated on every tick.
+A terminal statusline for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sessions.
 
 ![vitals demo](demo.gif)
 
 ## Install
 
-Requires Go 1.25+.
-
 ```bash
 go install github.com/Jason-Adam/vitals/cmd/vitals@latest
-```
-
-To update, run the same command. `go install` puts the binary in `~/go/bin` by default, so make sure that's in your `PATH`.
-
-To build from source:
-
-```bash
-git clone git@github.com:Jason-Adam/vitals.git
-cd vitals
-just build
 ```
 
 ## Setup
@@ -35,37 +23,7 @@ Add to `~/.claude/settings.json`:
 }
 ```
 
-Works out of the box with the `default` preset. To customize, run `vitals --init` to generate a config at `~/.config/vitals/config.toml`.
-
-## Presets
-
-Five built-in presets. Apply one without editing TOML:
-
-| Preset | Lines | Description |
-|---|---|---|
-| `default` | 3 | Model, context, project, todos, duration / tools / agents |
-| `compact` | 1 | Model, context, cost, duration |
-| `detailed` | 4 | Everything: tokens, speed, messages, lines added/removed |
-| `powerline` | 2 | Arrow segments with auto-detected light/dark theme |
-| `minimal` | 1 | Model, context, duration. Space-separated, no backgrounds |
-
-```bash
-vitals --preset powerline
-```
-
-Custom presets go in `~/.config/vitals/presets/*.toml`.
-
-## Documentation
-
-- [Widgets](docs/widgets.md) -- 19 available widgets and what they display
-- [Configuration](docs/configuration.md) -- TOML reference, render modes, themes
-- [CLI](docs/cli.md) -- Flags and commands
-- [Architecture](docs/architecture.md) -- Pipeline design and transcript processing
-- [Development](docs/development.md) -- Building, testing, releasing
-
-## Related
-
-- [tail-claude](https://github.com/Jason-Adam/tail-claude) -- Terminal TUI for reading Claude Code session logs
+To customize, run `vitals --init` to generate a config at `~/.config/vitals/config.toml`.
 
 ## License
 

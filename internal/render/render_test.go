@@ -104,7 +104,7 @@ func TestRender_TruncatesLongLines(t *testing.T) {
 
 func TestRender_NoTruncationWhenWidthZero(t *testing.T) {
 	// When TerminalWidth is 0 (unknown), output passes through without
-	// truncation — let Claude Code handle it. Matches claude-hud behavior.
+	// truncation — let Claude Code handle it.
 	longName := strings.Repeat("Y", 200)
 	ctx := &model.RenderContext{
 		ModelDisplayName: longName,
@@ -219,46 +219,6 @@ func TestRender_UsesSeparator(t *testing.T) {
 	out := buf.String()
 	if !strings.Contains(out, " :: ") {
 		t.Errorf("expected separator %q in output, got %q", " :: ", out)
-	}
-}
-
-// TestRender_PlainModeOutputIdentical verifies that when a theme fg override
-// exists, plain mode re-renders from PlainText with the override color.
-// The default built-in theme assigns fg "135" to the env widget, so the
-// pre-styled MutedStyle text is replaced with PlainText rendered in fg 135.
-func TestRender_PlainModeOutputIdentical(t *testing.T) {
-	ctx := &model.RenderContext{
-		EnvCounts: &model.EnvCounts{MCPServers: 3, Hooks: 2},
-	}
-	cfg := config.LoadHud()
-	cfg.Lines = []config.Line{
-		{Widgets: []string{"env"}},
-	}
-
-	var buf bytes.Buffer
-	Render(&buf, ctx, cfg)
-
-	rendered := strings.TrimRight(buf.String(), "\n")
-
-	// Default theme has env fg = "135". Plain mode now re-renders PlainText
-	// ("3M 2H") with that fg override instead of passing through MutedStyle.
-	styled := lipgloss.NewStyle().Foreground(lipgloss.Color("135")).Render("3M 2H")
-	want := "\x1b[0m" + styled + "\x1b[0m\x1b[K"
-	if rendered != want {
-		t.Errorf("plain mode output mismatch: got %q, want %q", rendered, want)
-	}
-
-	// Cross-check: verify the WidgetResult fields are still correct.
-	result := widget.Registry["env"](ctx, cfg)
-	if result.FgColor != "8" {
-		t.Errorf("Env FgColor: expected '8', got %q", result.FgColor)
-	}
-	if result.PlainText != "3M 2H" {
-		t.Errorf("Env PlainText: expected '3M 2H', got %q", result.PlainText)
-	}
-	mutedStyled := widget.MutedStyle.Render("3M 2H")
-	if result.Text != mutedStyled {
-		t.Errorf("Env Text: expected pre-styled %q, got %q", mutedStyled, result.Text)
 	}
 }
 

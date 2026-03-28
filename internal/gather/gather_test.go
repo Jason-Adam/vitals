@@ -73,35 +73,12 @@ func TestGather_NoTranscriptGoroutineWhenWidgetsAbsent(t *testing.T) {
 	// so Transcript stays nil even when a path is present.
 	input := minimalInput()
 	input.TranscriptPath = "/nonexistent/transcript.jsonl"
-	cfg := cfgWithWidgets("model", "context", "directory", "env", "git")
+	cfg := cfgWithWidgets("model", "context", "directory", "git")
 
 	ctx := Gather(input, cfg)
 
 	if ctx.Transcript != nil {
 		t.Errorf("expected Transcript to be nil when no transcript widgets configured, got non-nil")
-	}
-}
-
-func TestGather_NoEnvGoroutineWhenWidgetAbsent(t *testing.T) {
-	input := minimalInput()
-	cfg := cfgWithWidgets("model", "context")
-
-	ctx := Gather(input, cfg)
-
-	if ctx.EnvCounts != nil {
-		t.Errorf("expected EnvCounts to be nil when env widget not configured, got non-nil")
-	}
-}
-
-func TestGather_EnvCountsPopulatedWhenWidgetActive(t *testing.T) {
-	input := minimalInput()
-	cfg := cfgWithWidgets("env")
-
-	ctx := Gather(input, cfg)
-
-	// CountEnv never returns nil, so the field should be populated.
-	if ctx.EnvCounts == nil {
-		t.Errorf("expected EnvCounts to be non-nil when env widget is active")
 	}
 }
 
@@ -366,8 +343,7 @@ func TestNeedsTranscript(t *testing.T) {
 		{"tools active", []string{"tools"}, true},
 		{"agents active", []string{"agents"}, true},
 		{"todos active", []string{"todos"}, true},
-		{"thinking active", []string{"thinking"}, true},
-		{"none active", []string{"model", "git", "env"}, false},
+		{"none active", []string{"model", "git"}, false},
 		{"empty", []string{}, false},
 	}
 
@@ -381,44 +357,6 @@ func TestNeedsTranscript(t *testing.T) {
 				t.Errorf("needsTranscript(%v): got %v, want %v", tc.widgets, got, tc.want)
 			}
 		})
-	}
-}
-
-func TestNeedsTranscript_ThinkingWidget(t *testing.T) {
-	// "thinking" must be recognised as a transcript-backed widget.
-	active := map[string]bool{"thinking": true}
-	if !needsTranscript(active) {
-		t.Error("needsTranscript: want true when 'thinking' widget is active")
-	}
-}
-
-func TestGather_TranscriptSpawnedForThinkingWidget(t *testing.T) {
-	// Ensure the transcript goroutine runs when the "thinking" widget is active.
-	dir := t.TempDir()
-	transcriptPath := filepath.Join(dir, "session.jsonl")
-
-	entry := map[string]interface{}{
-		"type":      "assistant",
-		"uuid":      "test-uuid-thinking",
-		"timestamp": "2024-01-15T10:00:00Z",
-		"message": map[string]interface{}{
-			"role":    "assistant",
-			"content": "hello",
-		},
-	}
-	line, _ := json.Marshal(entry)
-	if err := os.WriteFile(transcriptPath, append(line, '\n'), 0o644); err != nil {
-		t.Fatalf("write transcript: %v", err)
-	}
-
-	input := minimalInput()
-	input.TranscriptPath = transcriptPath
-	cfg := cfgWithWidgets("thinking")
-
-	ctx := Gather(input, cfg)
-
-	if ctx.Transcript == nil {
-		t.Fatal("expected Transcript non-nil when thinking widget active and path set")
 	}
 }
 
