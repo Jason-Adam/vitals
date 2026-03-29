@@ -11,8 +11,11 @@ import (
 // Running agents show a colored robot icon, half-circle indicator, and elapsed time.
 // Completed agents show a dim colored robot icon, check mark, and duration.
 // Returns an empty WidgetResult when ctx.Transcript is nil or there are no agents to show.
-// FgColor is left empty because the widget composes multiple styles internally;
-// the renderer passes the pre-styled Text through as-is.
+//
+// The first agent is returned as the main WidgetResult; additional agents are
+// stacked vertically via ExtraLines. FgColor is set to the first agent's
+// palette color for theme/minimal mode compatibility. Each agent's Text field
+// contains pre-styled ANSI with per-element colors (icon, name, elapsed).
 func Agents(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Transcript == nil {
 		return WidgetResult{}

@@ -825,6 +825,9 @@ func TestAgentsWidget_MaxFiveTotal(t *testing.T) {
 	cfg := defaultCfg()
 
 	got := Agents(ctx, cfg)
+	if got.IsEmpty() {
+		t.Fatal("Agents: expected non-empty result for 7 agents")
+	}
 	// 1 main + ExtraLines should total at most 5.
 	total := 1 + len(got.ExtraLines)
 	if total > 5 {
