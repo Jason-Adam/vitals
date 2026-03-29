@@ -291,6 +291,16 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 		// to fill the remainder of the line with the default background.
 		outLine := ansiReset + output + ansiReset + "\x1b[K"
 		fmt.Fprintln(w, outLine)
+
+		// Emit extra lines from widgets that produce multiple rows (e.g. agents).
+		for _, r := range results {
+			for _, extra := range r.ExtraLines {
+				if ctx.TerminalWidth >= minTruncateWidth {
+					extra = ansi.Truncate(extra, ctx.TerminalWidth, truncateSuffix)
+				}
+				fmt.Fprintln(w, ansiReset+extra+ansiReset+"\x1b[K")
+			}
+		}
 	}
 
 	// Extra command output: rendered as a final line when non-empty.

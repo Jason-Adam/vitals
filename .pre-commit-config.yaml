@@ -3,4 +3,11 @@ repos:
     rev: v0.5.1
     hooks:
       - id: go-fmt
+  - repo: local
+    hooks:
       - id: go-vet
+        name: go vet
+        entry: go vet ./...
+        language: system
+        pass_filenames: false
+        types: [go]
