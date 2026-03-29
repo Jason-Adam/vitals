@@ -1,24 +1,21 @@
 package widget
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/Jason-Adam/vitals/internal/config"
 	"github.com/Jason-Adam/vitals/internal/model"
-	"github.com/charmbracelet/x/ansi"
 )
-
-// agentSeparator is the text between agent entries.
-const agentSeparator = " | "
 
 // Agents renders running and recently-completed sub-agent entries.
 // Running agents show a colored robot icon, half-circle indicator, and elapsed time.
 // Completed agents show a dim colored robot icon, check mark, and duration.
 // Returns an empty WidgetResult when ctx.Transcript is nil or there are no agents to show.
-// FgColor is left empty because the widget composes multiple styles internally;
-// the renderer passes the pre-styled Text through as-is.
+//
+// The first agent is returned as the main WidgetResult; additional agents are
+// stacked vertically via ExtraLines. FgColor is set to the first agent's
+// palette color for theme/minimal mode compatibility. Each agent's Text field
+// contains pre-styled ANSI with per-element colors (icon, name, elapsed).
 func Agents(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	if ctx.Transcript == nil {
 		return WidgetResult{}
@@ -53,70 +50,27 @@ func Agents(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 		return WidgetResult{}
 	}
 
-	var parts []string
-	var plainParts []string
-	for _, a := range toShow {
-		parts = append(parts, formatAgentEntry(a, icons))
-		plainParts = append(plainParts, formatAgentEntryPlain(a, icons))
-	}
+	// Stack agents vertically: first agent is the main result, remaining
+	// agents are emitted as extra lines (one per row).
+	first := toShow[0]
+	fgColor := agentColors[first.ColorIndex%8]
 
-	// When the terminal width is known, truncate trailing agents with a count
-	// indicator (e.g. "+2 more") instead of letting the render stage cut mid-entry
-	// with "...". This produces a more readable result when many agents are running.
-	if ctx.TerminalWidth > 0 {
-		parts, plainParts = truncateAgentEntries(parts, plainParts, ctx.TerminalWidth)
-	}
-
-	// Use the first agent's palette color as the dominant fg.
-	fgColor := agentColors[toShow[0].ColorIndex%8]
-
-	return WidgetResult{
-		Text:      strings.Join(parts, agentSeparator),
-		PlainText: strings.Join(plainParts, agentSeparator),
+	result := WidgetResult{
+		Text:      formatAgentEntry(first, icons),
+		PlainText: formatAgentEntryPlain(first, icons),
 		FgColor:   fgColor,
 	}
-}
 
-// truncateAgentEntries drops trailing entries that would push the joined output
-// beyond maxWidth, appending a "+N more" indicator to signal the hidden count.
-// It measures width using the plain-text variants (no ANSI codes) so that
-// wide characters and multi-byte icons are counted correctly.
-func truncateAgentEntries(styled, plain []string, maxWidth int) ([]string, []string) {
-	// Rough overhead: ANSI reset prefix + reset suffix + erase-to-EOL added by
-	// the renderer. We leave a conservative 8-column margin for those bytes.
-	const rendererOverhead = 8
-
-	available := maxWidth - rendererOverhead
-	if available <= 0 {
-		available = maxWidth
+	for _, a := range toShow[1:] {
+		color := agentColors[a.ColorIndex%8]
+		result.ExtraLines = append(result.ExtraLines, WidgetResult{
+			Text:      formatAgentEntry(a, icons),
+			PlainText: formatAgentEntryPlain(a, icons),
+			FgColor:   color,
+		})
 	}
 
-	total := len(plain)
-	for keep := total; keep > 0; keep-- {
-		candidate := strings.Join(plain[:keep], agentSeparator)
-		if keep < total {
-			candidate += agentSeparator + fmt.Sprintf("+%d more", total-keep)
-		}
-		if ansi.StringWidth(candidate) <= available {
-			if keep == total {
-				// Everything fits — return as-is.
-				return styled, plain
-			}
-			// Build new slices to avoid mutating the caller's backing arrays.
-			suffix := fmt.Sprintf("+%d more", total-keep)
-			outStyled := make([]string, keep+1)
-			copy(outStyled, styled[:keep])
-			outStyled[keep] = DimStyle.Render(suffix)
-			outPlain := make([]string, keep+1)
-			copy(outPlain, plain[:keep])
-			outPlain[keep] = suffix
-			return outStyled, outPlain
-		}
-	}
-
-	// Fallback: not even one entry fits. Return just the first entry without
-	// a count indicator so the render stage can truncate it further.
-	return styled[:1], plain[:1]
+	return result
 }
 
 // agentStaleThreshold is how long after completion before an agent entry
@@ -134,28 +88,13 @@ func isStaleAgent(a model.AgentEntry) bool {
 	return time.Since(completedAt) > agentStaleThreshold
 }
 
-// maxAgentNameWidth is the character budget for the name/description portion
-// of an agent entry. The full entry also includes icon, model suffix, status
-// indicator, and elapsed/duration, so the name must be capped to prevent a
-// single verbose description from consuming the entire line.
-const maxAgentNameWidth = 25
-
-// truncateAgentName caps name to maxWidth visible characters, appending "…"
-// when truncation is needed. Returns name unchanged when it fits.
-func truncateAgentName(name string, maxWidth int) string {
-	if ansi.StringWidth(name) <= maxWidth {
-		return name
-	}
-	return ansi.Truncate(name, maxWidth-1, "") + "…"
-}
-
 // formatAgentEntryPlain renders a single agent entry as unstyled text.
 func formatAgentEntryPlain(a model.AgentEntry, icons Icons) string {
 	displayName := a.Name
 	if a.Description != "" {
 		displayName = a.Description
 	}
-	displayName = truncateAgentName(displayName, maxAgentNameWidth)
+	// No fixed width cap — the render pipeline truncates at terminal width.
 	modelSuffix := modelFamilySuffix(a.Model)
 	label := icons.Task + " " + displayName + modelSuffix
 
@@ -180,7 +119,7 @@ func formatAgentEntry(a model.AgentEntry, icons Icons) string {
 	if a.Description != "" {
 		displayName = a.Description
 	}
-	displayName = truncateAgentName(displayName, maxAgentNameWidth)
+	// No fixed width cap — the render pipeline truncates at terminal width.
 
 	if a.Status == "running" {
 		elapsed := formatElapsed(time.Since(a.StartTime))

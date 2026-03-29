@@ -291,6 +291,28 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 		// to fill the remainder of the line with the default background.
 		outLine := ansiReset + output + ansiReset + "\x1b[K"
 		fmt.Fprintln(w, outLine)
+
+		// Emit extra lines from widgets that produce multiple rows (e.g. agents).
+		for i, r := range results {
+			for _, extra := range r.ExtraLines {
+				var extraOutput string
+				switch mode {
+				case "powerline":
+					extraOutput = renderPowerline([]widget.WidgetResult{extra}, []string{names[i]}, cfg)
+				case "minimal":
+					extraOutput = renderMinimal([]widget.WidgetResult{extra}, line, cfg)
+				default:
+					extraOutput = applyWidgetStyle(extra, names[i], cfg)
+				}
+				if extraOutput == "" {
+					continue
+				}
+				if ctx.TerminalWidth >= minTruncateWidth {
+					extraOutput = ansi.Truncate(extraOutput, ctx.TerminalWidth, truncateSuffix)
+				}
+				fmt.Fprintln(w, ansiReset+extraOutput+ansiReset+"\x1b[K")
+			}
+		}
 	}
 
 	// Extra command output: rendered as a final line when non-empty.
