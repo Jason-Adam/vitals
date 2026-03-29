@@ -984,3 +984,43 @@ func TestRender_CompletedAgentWithLowDurationHidden(t *testing.T) {
 		t.Errorf("expected agent 'Ghost' with DurationMs=6 to be hidden, but found in %q", out)
 	}
 }
+
+func TestRender_ExtraLinesEmittedPerMode(t *testing.T) {
+	agents := []model.AgentEntry{
+		{Name: "Alpha", Status: "running", ColorIndex: 0, StartTime: time.Now()},
+		{Name: "Beta", Status: "running", ColorIndex: 1, StartTime: time.Now()},
+		{Name: "Gamma", Status: "running", ColorIndex: 2, StartTime: time.Now()},
+	}
+	ctx := &model.RenderContext{
+		TerminalWidth: 200,
+		Transcript:    &model.TranscriptData{Agents: agents},
+	}
+
+	for _, mode := range []string{"plain", "powerline", "minimal"} {
+		t.Run(mode, func(t *testing.T) {
+			cfg := config.LoadHud()
+			cfg.Style.Icons = "ascii"
+			cfg.Style.Mode = mode
+			cfg.Lines = []config.Line{
+				{Widgets: []string{"agents"}},
+			}
+
+			var buf bytes.Buffer
+			Render(&buf, ctx, cfg)
+			out := buf.String()
+
+			// 3 agents should produce 3 output lines (1 main + 2 extra).
+			lines := strings.Split(strings.TrimRight(out, "\n"), "\n")
+			if len(lines) != 3 {
+				t.Errorf("mode %q: expected 3 output lines for 3 agents, got %d: %q", mode, len(lines), out)
+			}
+
+			// All agent names must appear somewhere in the output.
+			for _, name := range []string{"Alpha", "Beta", "Gamma"} {
+				if !strings.Contains(out, name) {
+					t.Errorf("mode %q: expected agent %q in output, got %q", mode, name, out)
+				}
+			}
+		})
+	}
+}

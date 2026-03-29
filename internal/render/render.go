@@ -293,12 +293,24 @@ func Render(w io.Writer, ctx *model.RenderContext, cfg *config.Config) {
 		fmt.Fprintln(w, outLine)
 
 		// Emit extra lines from widgets that produce multiple rows (e.g. agents).
-		for _, r := range results {
+		for i, r := range results {
 			for _, extra := range r.ExtraLines {
-				if ctx.TerminalWidth >= minTruncateWidth {
-					extra = ansi.Truncate(extra, ctx.TerminalWidth, truncateSuffix)
+				var extraOutput string
+				switch mode {
+				case "powerline":
+					extraOutput = renderPowerline([]widget.WidgetResult{extra}, []string{names[i]}, cfg)
+				case "minimal":
+					extraOutput = renderMinimal([]widget.WidgetResult{extra}, line, cfg)
+				default:
+					extraOutput = applyWidgetStyle(extra, names[i], cfg)
 				}
-				fmt.Fprintln(w, ansiReset+extra+ansiReset+"\x1b[K")
+				if extraOutput == "" {
+					continue
+				}
+				if ctx.TerminalWidth >= minTruncateWidth {
+					extraOutput = ansi.Truncate(extraOutput, ctx.TerminalWidth, truncateSuffix)
+				}
+				fmt.Fprintln(w, ansiReset+extraOutput+ansiReset+"\x1b[K")
 			}
 		}
 	}

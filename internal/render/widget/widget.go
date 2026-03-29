@@ -24,11 +24,11 @@ type WidgetResult struct {
 	FgColor   string // foreground color (lipgloss color string) for PlainText
 	BgColor   string // background color (lipgloss color string); empty means use theme
 
-	// ExtraLines holds additional pre-styled output lines emitted after
-	// the main line. Used by the agents widget to stack each agent on its
-	// own row. The render pipeline emits each entry as a separate line
-	// with the standard ANSI reset + truncation + erase-to-EOL wrapping.
-	ExtraLines []string
+	// ExtraLines holds additional widget results emitted as separate output
+	// lines after the main line. Used by the agents widget to stack each
+	// agent on its own row. The render pipeline applies mode-appropriate
+	// styling (plain/powerline/minimal) and ANSI truncation to each entry.
+	ExtraLines []WidgetResult
 }
 
 // IsEmpty reports whether the result has no content to display.

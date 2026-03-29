@@ -117,20 +117,3 @@ func TestAgents_MaxFiveTotal(t *testing.T) {
 		t.Errorf("expected at most 5 agents total, got %d", total)
 	}
 }
-
-func TestTruncateAgentName_Short(t *testing.T) {
-	name := "Explore"
-	got := truncateAgentName(name, 25)
-	if got != name {
-		t.Errorf("truncateAgentName(%q): got %q, want unchanged", name, got)
-	}
-}
-
-func TestTruncateAgentName_Long(t *testing.T) {
-	name := "Implement comprehensive test coverage for parser"
-	got := truncateAgentName(name, 25)
-
-	if !strings.HasSuffix(got, "…") {
-		t.Errorf("truncateAgentName: expected '…' suffix, got %q", got)
-	}
-}

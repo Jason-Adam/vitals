@@ -5,7 +5,6 @@ import (
 
 	"github.com/Jason-Adam/vitals/internal/config"
 	"github.com/Jason-Adam/vitals/internal/model"
-	"github.com/charmbracelet/x/ansi"
 )
 
 // Agents renders running and recently-completed sub-agent entries.
@@ -60,7 +59,12 @@ func Agents(ctx *model.RenderContext, cfg *config.Config) WidgetResult {
 	}
 
 	for _, a := range toShow[1:] {
-		result.ExtraLines = append(result.ExtraLines, formatAgentEntry(a, icons))
+		color := agentColors[a.ColorIndex%8]
+		result.ExtraLines = append(result.ExtraLines, WidgetResult{
+			Text:      formatAgentEntry(a, icons),
+			PlainText: formatAgentEntryPlain(a, icons),
+			FgColor:   color,
+		})
 	}
 
 	return result
@@ -79,16 +83,6 @@ func isStaleAgent(a model.AgentEntry) bool {
 	}
 	completedAt := a.StartTime.Add(time.Duration(a.DurationMs) * time.Millisecond)
 	return time.Since(completedAt) > agentStaleThreshold
-}
-
-// truncateAgentName is unused after vertical stacking but retained for
-// potential future use. Agent names are no longer capped at a fixed width;
-// the render pipeline's per-line ANSI truncation handles overflow.
-func truncateAgentName(name string, maxWidth int) string {
-	if ansi.StringWidth(name) <= maxWidth {
-		return name
-	}
-	return ansi.Truncate(name, maxWidth-1, "") + "…"
 }
 
 // formatAgentEntryPlain renders a single agent entry as unstyled text.
