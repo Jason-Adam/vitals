@@ -6,7 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -152,7 +152,9 @@ func findGitDir(cwd string) string {
 }
 
 // cacheFilePath returns the on-disk cache file for cwd. The filename is a
-// short SHA-256 prefix of the cwd so different directories never collide.
+// short SHA-256 prefix of the cwd; a 48-bit prefix makes same-machine
+// collisions vanishingly unlikely, and loadCache verifies the embedded CWD
+// field as a last-resort collision guard.
 func cacheFilePath(cwd string) string {
 	sum := sha256.Sum256([]byte(cwd))
 	name := fmt.Sprintf(".git-%x.json", sum[:6])
@@ -203,7 +205,10 @@ func saveCache(cwd string, status *model.GitStatus) error {
 	if err := os.Rename(tmp, target); err != nil {
 		return err
 	}
-	if rand.Intn(sweepOdds) == 0 {
+	// math/rand/v2's top-level functions use a per-process random source that
+	// is seeded from the OS on startup, so the 1-in-N sampling holds across
+	// the one-shot-per-tick process model (unlike v1 pre-Go 1.20).
+	if rand.IntN(sweepOdds) == 0 {
 		sweepStaleCacheFiles(dir)
 	}
 	return nil

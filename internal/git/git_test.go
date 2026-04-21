@@ -437,6 +437,20 @@ func TestGetStatus_NoOptionalLocksNoContention(t *testing.T) {
 		})
 	}
 
+	// classify runs a git op and reports: nil success, contention (the error
+	// this test is asserting against), or any other error (fails the test so
+	// environmental issues don't silently make the stress test pass).
+	classify := func(label, out string, err error) (contended bool) {
+		if err == nil {
+			return false
+		}
+		if strings.Contains(out, "Another git process") {
+			return true
+		}
+		t.Errorf("unexpected %s failure: %v\n%s", label, err, out)
+		return false
+	}
+
 	var contention atomic.Int32
 	const userOps = 200
 	for i := range userOps {
@@ -446,17 +460,15 @@ func TestGetStatus_NoOptionalLocksNoContention(t *testing.T) {
 		}
 		addCmd := exec.Command("git", "add", fname)
 		addCmd.Dir = dir
-		if out, err := addCmd.CombinedOutput(); err != nil {
-			if strings.Contains(string(out), "Another git process") {
-				contention.Add(1)
-			}
+		addOut, addErr := addCmd.CombinedOutput()
+		if classify("git add", string(addOut), addErr) {
+			contention.Add(1)
 		}
 		resetCmd := exec.Command("git", "reset")
 		resetCmd.Dir = dir
-		if out, err := resetCmd.CombinedOutput(); err != nil {
-			if strings.Contains(string(out), "Another git process") {
-				contention.Add(1)
-			}
+		resetOut, resetErr := resetCmd.CombinedOutput()
+		if classify("git reset", string(resetOut), resetErr) {
+			contention.Add(1)
 		}
 	}
 
