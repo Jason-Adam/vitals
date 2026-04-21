@@ -3,70 +3,234 @@ package git
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
+	"math/rand"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Jason-Adam/vitals/internal/logging"
 	"github.com/Jason-Adam/vitals/internal/model"
 )
 
-const timeout = time.Second
-const cacheTTL = time.Second
+const (
+	// timeout is a hard ceiling on the git subprocess. The statusline budget is
+	// single-digit ms on healthy repos; 200ms protects against pathological
+	// fsmonitor/NFS cases without dominating a tick.
+	timeout = 200 * time.Millisecond
 
-// cache holds the last result per working directory.
-type cacheEntry struct {
-	status    *model.GitStatus
-	timestamp time.Time
-}
+	// cacheTTL is how long a fetched status is considered fresh. 2s covers
+	// typing bursts while keeping the worst-case staleness small enough that
+	// post-commit state (ahead/behind, dirty->clean) feels live.
+	cacheTTL = 2 * time.Second
 
-var (
-	cacheMu sync.Mutex
-	cache   = map[string]cacheEntry{}
+	// cacheFileTTL is how long an untouched cache file must age before the
+	// sweep deletes it. 30 days covers any realistic gap between sessions.
+	cacheFileTTL = 30 * 24 * time.Hour
+
+	// sweepOdds controls how often a successful save triggers a stale-file
+	// sweep. At 1-in-100, sweeps run often enough to keep the directory bounded
+	// but rarely enough that the extra readdir cost is amortised away.
+	sweepOdds = 100
 )
 
-// GetStatus returns the git status for the given directory, or nil if the
-// directory is not a git repo or any command fails. Callers must guard against
-// nil before dereferencing the result.
-//
-// Results are cached per directory for up to 1 second so rapid successive
-// calls (e.g. multiple render ticks) avoid redundant subprocess spawns.
-func GetStatus(cwd string) *model.GitStatus {
-	cacheMu.Lock()
-	if entry, ok := cache[cwd]; ok && time.Since(entry.timestamp) < cacheTTL {
-		cacheMu.Unlock()
-		return entry.status
-	}
-	cacheMu.Unlock()
-
-	status := fetchStatus(cwd)
-
-	cacheMu.Lock()
-	cache[cwd] = cacheEntry{status: status, timestamp: time.Now()}
-	cacheMu.Unlock()
-
-	return status
+// cacheEntry is the JSON structure persisted per cwd.
+type cacheEntry struct {
+	CWD       string           `json:"cwd"`
+	Timestamp time.Time        `json:"timestamp"`
+	Status    *model.GitStatus `json:"status"`
 }
 
-// fetchStatus runs a single `git status --branch --porcelain=v2` subprocess and
-// parses all fields needed by model.GitStatus. Returns nil when the directory is
-// not a git repo or the command fails.
-func fetchStatus(cwd string) *model.GitStatus {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+// GetStatus returns the git status for cwd, or nil if cwd is not a git repo
+// or all fetch/cache paths fail. Callers must guard against nil.
+//
+// The function is structured to never block the statusline on a stuck or
+// contended git: it prefers a fresh on-disk cache, yields to any user git op
+// that is holding .git/index.lock, and bounds the subprocess at 200ms. On
+// any fetch failure, an existing stale cache is returned in preference to nil.
+func GetStatus(cwd string) *model.GitStatus {
+	cached, haveCache := loadCache(cwd)
+	if haveCache && time.Since(cached.Timestamp) < cacheTTL {
+		return cached.Status
+	}
 
-	cmd := exec.CommandContext(ctx, "git", "status", "--branch", "--porcelain=v2")
-	cmd.Dir = cwd
-	out, err := cmd.Output()
-	if err != nil {
-		// Non-zero exit means we're outside a git repo or git is unavailable.
-		logging.Debug("git: porcelain=v2 failed in %s: %v", cwd, err)
+	// Yield to concurrent user git operations. If .git/index.lock is present,
+	// our subprocess could block the user and we prefer stale data. This also
+	// avoids competing with commit/add/checkout for the lock. Worktrees point
+	// .git at a file whose `gitdir:` line names the real gitdir under the
+	// parent repo, which is where the worktree-specific index.lock lives.
+	if gitDir := findGitDir(cwd); gitDir != "" {
+		if _, err := os.Stat(filepath.Join(gitDir, "index.lock")); err == nil {
+			logging.Debug("git: index.lock present at %s — yielding subprocess", gitDir)
+			if haveCache {
+				return cached.Status
+			}
+			return nil
+		}
+	}
+
+	status, ok := fetchStatus(cwd)
+	if !ok {
+		// Any failure (timeout, exec error, non-repo): return stale cache if
+		// present rather than clobbering a previously-good snapshot.
+		if haveCache {
+			return cached.Status
+		}
 		return nil
 	}
 
-	return parsePorcelainV2(string(out))
+	_ = saveCache(cwd, status)
+	return status
+}
+
+// fetchStatus runs a single git subprocess and parses the porcelain v2 output.
+// Returns (status, true) on success, (nil, false) on any error (including
+// timeout and non-repo exit).
+//
+// --no-optional-locks prevents git status from taking .git/index.lock to
+// refresh the stat cache. Without it, a vitals tick running in a tight loop
+// can block a concurrent `git commit`/`add`/`checkout` with "Another git
+// process seems to be running in this repository."
+func fetchStatus(cwd string) (*model.GitStatus, bool) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "git", "--no-optional-locks", "status", "--branch", "--porcelain=v2")
+	cmd.Dir = cwd
+	out, err := cmd.Output()
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			logging.Debug("git: porcelain=v2 timed out after %s in %s", timeout, cwd)
+		} else {
+			logging.Debug("git: porcelain=v2 failed in %s: %v", cwd, err)
+		}
+		return nil, false
+	}
+	return parsePorcelainV2(string(out)), true
+}
+
+// findGitDir walks upward from cwd looking for .git (either a directory, the
+// common case, or a regular file, used by worktrees). When .git is a file it
+// contains a `gitdir: <path>` pointer to the real git directory — typically
+// <main-repo>/.git/worktrees/<name>/ — and that is where the worktree-specific
+// index.lock lives. Returns "" when no .git is found.
+func findGitDir(cwd string) string {
+	dir := cwd
+	for {
+		candidate := filepath.Join(dir, ".git")
+		info, err := os.Stat(candidate)
+		if err == nil {
+			if info.IsDir() {
+				return candidate
+			}
+			data, err := os.ReadFile(candidate)
+			if err != nil {
+				return ""
+			}
+			line := strings.TrimSpace(string(data))
+			const prefix = "gitdir: "
+			if !strings.HasPrefix(line, prefix) {
+				return ""
+			}
+			gitDir := strings.TrimPrefix(line, prefix)
+			if !filepath.IsAbs(gitDir) {
+				gitDir = filepath.Join(dir, gitDir)
+			}
+			return gitDir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+		dir = parent
+	}
+}
+
+// cacheFilePath returns the on-disk cache file for cwd. The filename is a
+// short SHA-256 prefix of the cwd so different directories never collide.
+func cacheFilePath(cwd string) string {
+	sum := sha256.Sum256([]byte(cwd))
+	name := fmt.Sprintf(".git-%x.json", sum[:6])
+	return filepath.Join(model.PluginDir(), name)
+}
+
+// loadCache reads and parses the cache file for cwd. Returns (entry, true)
+// when a valid cache is present, (nil, false) otherwise. A cache with a
+// mismatched CWD field is treated as absent (hash collision guard).
+func loadCache(cwd string) (*cacheEntry, bool) {
+	data, err := os.ReadFile(cacheFilePath(cwd))
+	if err != nil {
+		return nil, false
+	}
+	var entry cacheEntry
+	if err := json.Unmarshal(data, &entry); err != nil {
+		return nil, false
+	}
+	if entry.CWD != cwd {
+		return nil, false
+	}
+	return &entry, true
+}
+
+// saveCache writes the cache file atomically (temp file + rename) so concurrent
+// readers never see a partial write. Best-effort: errors are returned but
+// callers ignore them — a failed write at worst costs the next caller a
+// subprocess.
+func saveCache(cwd string, status *model.GitStatus) error {
+	dir := model.PluginDir()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	entry := cacheEntry{
+		CWD:       cwd,
+		Timestamp: time.Now(),
+		Status:    status,
+	}
+	data, err := json.Marshal(entry)
+	if err != nil {
+		return err
+	}
+	target := cacheFilePath(cwd)
+	tmp := target + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, target); err != nil {
+		return err
+	}
+	if rand.Intn(sweepOdds) == 0 {
+		sweepStaleCacheFiles(dir)
+	}
+	return nil
+}
+
+// sweepStaleCacheFiles removes cache files older than cacheFileTTL. Best-effort:
+// any error aborts the sweep without surfacing. Same pattern as
+// transcript.sweepStaleStateFiles.
+func sweepStaleCacheFiles(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	cutoff := time.Now().Add(-cacheFileTTL)
+	for _, entry := range entries {
+		name := entry.Name()
+		if !strings.HasPrefix(name, ".git-") || !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		if info.ModTime().Before(cutoff) {
+			os.Remove(filepath.Join(dir, name)) //nolint:errcheck
+		}
+	}
 }
 
 // parsePorcelainV2 parses the output of `git status --branch --porcelain=v2`
